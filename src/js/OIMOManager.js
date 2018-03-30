@@ -12,13 +12,13 @@ OIMOWorker.onmessage = function(e) {
     // stat
     fps = e.data.fps;
     // Get fresh data from the worker
-    let data = e.data.bodyData;
+    let bodyData = e.data.data;
     Object.keys(objects).forEach((key,i)=>{
         let o = objects[key];
         let offset = i*8;
-        if(bodyData[n] !== 1){ //not asleep
-            o.position.fromArray( data, i+1);
-            o.quaternion.fromArray( data, i+4 );
+        if(bodyData[offset] !== 1){ //not asleep
+            o.position.fromArray( bodyData, offset+1);
+            o.quaternion.fromArray( bodyData, offset+4 );
         }
     });
 };

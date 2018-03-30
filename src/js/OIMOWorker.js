@@ -14,7 +14,9 @@ const bodies = {}; //Holds all the Physics bodies tied to their THREEjs UUID
 const bodyData = new Float32Array( maxBodies * 8 );
 
 let fps = 0;
-let fpsHistory = [0,0,0];
+let fTime = [0,0,0];
+
+let simulating = false;
 
 self.onmessage = function(e) {
     if(e.data.command === "create") {
@@ -29,7 +31,11 @@ self.onmessage = function(e) {
         b.setPosition(e.data.position);
         b.setQuaternion(e.data.quaternion);
     }
-    setInterval( step, dt*1000 );
+
+    if(!simulating) {
+        setInterval( step, dt*1000 );
+        simulating = true;
+    }
 };
 function step() {
     // Step the world
@@ -39,21 +45,22 @@ function step() {
     Object.keys(bodies).forEach((key, i)=>{
         let b = bodies[key];
         let offset = i * 8;
-        bodyData[i] = +b.sleeping;
-        if(!bodyData[i]) {
-            b.getPosition().toArray( bodyData, i+1 );
-            b.getQuaternion().toArray( bodyData, i+4 );
+        bodyData[offset] = +b.sleeping;
+        if(!bodyData[offset]) {
+            b.getPosition().toArray( bodyData, offset + 1 );
+            b.getQuaternion().toArray( bodyData, offset + 4 );
         }
     });
+    console.log(bodyData.slice(0,16));
 
     //Calculate FPS
-    f[1] = Date.now();
-    if (f[1]-1000 > f[0]){
-        f[0] = f[1];
-        fps = f[2];
-        f[2] = 0;
+    fTime[1] = Date.now();
+    if (fTime[1]-1000 > fTime[0]){
+        fTime[0] = fTime[1];
+        fps = fTime[2];
+        fTime[2] = 0;
     }
-    f[2]++;
+    fTime[2]++;
 
     //Post message with data back
     self.postMessage({

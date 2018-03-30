@@ -34,7 +34,8 @@ class ChemTable {
       scene.add(ci);
       addObject(ci, {
         type:"cylinder",
-        pos:ci.position.toArray()
+        pos:ci.position.toArray(),
+        move: true
       });
     };
     
