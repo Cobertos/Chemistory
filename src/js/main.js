@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import $ from "jquery";
-import { addObject } from "./OIMOManager";
+import { addPhysicsObject, setPhysicsObject, delPhysicsObject } from "./OIMOManager";
 
 class ChemTable {
   constructor(spawnPos) {
@@ -9,9 +9,10 @@ class ChemTable {
     let _startPos = spawnPos.clone().add(new THREE.Vector3(0,5,0));
     let _endPos = spawnPos.clone();
     
-    let g = new THREE.BoxBufferGeometry(3.5,1.7,2);
+    let g = new THREE.BoxBufferGeometry(1,1,1);
     let m = new THREE.MeshLambertMaterial({ color: 0xCCCCCC });
     let o = new THREE.Mesh(g, m);
+    o.scale.set(3.5,1.7,2);
     
     o.onBeforeRender = ()=>{
       if(Date.now() > _endTime) {
@@ -24,41 +25,50 @@ class ChemTable {
                       .add(_endPos.clone()
                            .sub(_startPos)
                            .multiplyScalar(deltaFrac));
-      console.log(currPos);
       o.position.copy(currPos);
+      setPhysicsObject(o);
     };
     
     o.onRaycast = (hitInfo, scene)=>{
-      let ci = ChemItem.spawn(new THREE.Color(1,0,0));
-      ci.position.copy(_endPos.clone().add(new THREE.Vector3(0,2,0)));
-      scene.add(ci);
-      addObject(ci, {
-        type:"cylinder",
-        pos:ci.position.toArray(),
-        move: true
-      });
+      let ci = ChemItem.spawn(scene, 
+        _endPos.clone().add(new THREE.Vector3(0,2,0)),
+        new THREE.Color(1,0,0));
     };
     
     return o;
   }
   
-  static spawn(spawnPos) {
-    return new ChemTable(spawnPos);
+  static spawn(scene, spawnPos) {
+    let t = new ChemTable(spawnPos);
+    scene.add(t);
+    addPhysicsObject(t, {
+        type: "box",
+        move: false
+      });
+    return t;
   }
 }
 
 class ChemItem {
-  constructor(color) {
-    let g = new THREE.CylinderBufferGeometry(0.125,0.125,0.125,10);
+  constructor(spawnPos, color) {
+    let g = new THREE.CylinderBufferGeometry(1,1,1,10);
     let m = new THREE.MeshLambertMaterial({ color: color });
     let o = new THREE.Mesh(g, m);
+    o.position.copy(spawnPos);
+    o.scale.set(0.125,0.125,0.125);
     console.log(o);
     
     return o;
   }
   
-  static spawn(color) {
-    return new ChemItem(color);
+  static spawn(scene, spawnPos, color) {
+    let i = new ChemItem(spawnPos, color);
+    scene.add(i);
+    addPhysicsObject(i, {
+        type:"cylinder",
+        move: true
+      }); 
+    return i;
   }
 }
 
@@ -72,8 +82,8 @@ $(()=>{
   let light = new THREE.PointLight( 0xffffdd, 1, 100 );
   light.position.set(0,2,0);
   s.add(light);
-  s.add(ChemTable.spawn(new THREE.Vector3(0,-2,-2)));
-  s.add(ChemTable.spawn(new THREE.Vector3(0,-2,-10)));
+  s.add(ChemTable.spawn(s, new THREE.Vector3(0,-2,-2)));
+  s.add(ChemTable.spawn(s, new THREE.Vector3(0,-2,-10)));
   
   let l = ()=>{
     r.render(s, c);

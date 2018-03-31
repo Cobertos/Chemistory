@@ -16,20 +16,43 @@ OIMOWorker.onmessage = function(e) {
     Object.keys(objects).forEach((key,i)=>{
         let o = objects[key];
         let offset = i*8;
-        if(bodyData[offset] !== 1){ //not asleep
+        if(bodyData[offset] !== 1){ //not asleep || static
             o.position.fromArray( bodyData, offset+1);
             o.quaternion.fromArray( bodyData, offset+4 );
         }
     });
 };
 
-export function addObject(obj, physObj) {
+export function addPhysicsObject(obj, physObj) {
     objects[obj.uuid] = obj;
+
+    physObj = Object.assign({
+        pos: obj.position.toArray(),
+        size: obj.scale.toArray(),
+        rot: obj.quaternion.toArray(),
+    }, physObj);
+
     OIMOWorker.postMessage({
-        command: "create",
+        command: "add",
         id: obj.uuid,
         data: physObj
     });
+}
+export function setPhysicsObject(obj) {
+    console.log(obj.position);
+    OIMOWorker.postMessage({
+        command: "set",
+        id: obj.uuid,
+        pos: obj.position.toArray(),
+        rot: obj.quaternion.toArray()
+    });
+}
+export function delPhysicsObject(obj) {
+    OIMOWorker.postMessage({
+        command: "del",
+        id: obj.uuid
+    });
+    delete objects[obj.uuid];
 }
 
 export function getInfo(){

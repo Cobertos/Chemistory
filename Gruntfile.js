@@ -8,6 +8,7 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		webpack: {
 			dist : {
+				mode : "development",
 				context : path.resolve(__dirname, "./" + SRC_DIR + "/js"),
 				entry : "./main.js",
 				output : {
