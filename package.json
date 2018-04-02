@@ -32,7 +32,10 @@
     "html-loader": "^0.5.5",
     "imports-loader": "^0.8.0",
     "jit-grunt": "^0.10.0",
+    "nodegit": "^0.21.2",
+    "raw-loader": "^0.5.1",
     "rsvp": "^4.8.1",
+    "substitute-loader": "^1.0.0",
     "time-grunt": "^1.4.0",
     "webpack": "^4.3.0",
     "worker-loader": "^1.1.1"
