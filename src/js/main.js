@@ -3,6 +3,24 @@ import $ from "jquery";
 import { addPhysicsObject, setPhysicsObject, delPhysicsObject } from "./OIMOManager";
 import { BuildInfoWidget } from "./BuildInfoWidget";
 
+const conversions = {
+  eventToWindowPX : (ev)=>{
+    return new THREE.Vector2(ev.clientX, ev.clientY);
+  },
+  windowPXToViewportPX : ($el, v2)=>{
+    return v2.sub(new THREE.Vector2($el.offset().left, $el.offset().top));
+  },
+  viewportPXToviewportNDC : ($el, v2)=>{
+    v2.multiply(new THREE.Vector2(1/$el.innerWidth(), 1/$el.innerHeight()));
+    v2.multiplyScalar(2);
+    v2.sub(new THREE.Vector2(1,1));
+    v2.multiply(new THREE.Vector2(1,-1));
+    return v2;
+  }
+};
+
+let grabbedItem = undefined;
+
 class ChemTable {
   constructor(spawnPos) {
     const _fallTime = 1000;
@@ -18,6 +36,7 @@ class ChemTable {
     o.onBeforeRender = ()=>{
       if(Date.now() > _endTime) {
         o.position.copy(_endPos);
+        setPhysicsObject(o);
         return;
       }
       
@@ -57,7 +76,11 @@ class ChemItem {
     let o = new THREE.Mesh(g, m);
     o.position.copy(spawnPos);
     o.scale.set(0.125,0.125,0.125);
-    console.log(o);
+    
+    o.onRaycast = (hitInfo, scene)=>{
+      grabbedItem = o;
+      o.material.color.set(new THREE.Color(0,0.5,1));
+    };
     
     return o;
   }
@@ -97,13 +120,11 @@ $(()=>{
   window.s = s;
   
   $(r.domElement).on("click", (e)=>{
-    let mp = new THREE.Vector2(e.clientX, e.clientY);
-    mp.sub(new THREE.Vector2($(e.target).offset().left, $(e.target).offset().top));
-    mp.multiply(new THREE.Vector2(1/$(e.target).innerWidth(), 1/$(e.target).innerHeight()));
-    mp.multiplyScalar(2);
-    mp.sub(new THREE.Vector2(1,1));
-    mp.multiply(new THREE.Vector2(1,-1));
-    console.log(mp);
+    let $canvas = $(e.target);
+    let mp = conversions.viewportPXToviewportNDC($canvas, 
+      conversions.windowPXToViewportPX($canvas, 
+      conversions.eventToWindowPX(e)));
+
     
     let rc = new THREE.Raycaster();
     rc.setFromCamera(mp, c);
@@ -113,5 +134,51 @@ $(()=>{
         h.object.onRaycast(h, s);
       }
     });
+  });
+
+  let lastMP = undefined;
+  $(r.domElement).on("mousemove", (e)=>{
+    if(!grabbedItem) {
+      return;
+    }
+
+    let $canvas = $(e.target);
+    let mp = conversions.viewportPXToviewportNDC($canvas, 
+      conversions.windowPXToViewportPX($canvas, 
+      conversions.eventToWindowPX(e)));
+    if(!lastMP) {
+      lastMP = mp;
+      return;
+    }
+
+    //Get drag coordinate system
+    let cy = THREE.Object3D.DefaultUp.clone(); //Maybe make camera up?
+    let cz = c.getWorldDirection(new THREE.Vector3(0,0,0));
+    let cx = cz.clone().cross(cy).normalize();
+
+    //Find the distance of drag in each direction
+    let rc = new THREE.Raycaster();
+    rc.setFromCamera(mp, c);
+    let r = rc.ray; //Get internal .origin and .direction
+    let rc2 = new THREE.Raycaster();
+    rc2.setFromCamera(lastMP, c);
+    let r2 = rc2.ray;
+
+    let mouseDelta = mp.clone().sub(lastMP);
+    let dist = grabbedItem.position.clone()
+      .sub(c.position);
+    let itemDelta = cx.clone().multiplyScalar(mouseDelta.x)
+      .add(cy.clone().multiplyScalar(mouseDelta.y))
+      .normalize();
+
+    let cross = r2.direction.cross(r.direction).length();
+    //Solve congruent triangles
+    let theta = Math.asin(cross);
+    let finalDist = Math.tan(theta) * dist.length();
+    itemDelta.multiplyScalar(finalDist);
+
+    grabbedItem.position.add(itemDelta);
+    setPhysicsObject(grabbedItem);
+    lastMP = mp.clone();
   });
 });

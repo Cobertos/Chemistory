@@ -39,7 +39,6 @@ export function addPhysicsObject(obj, physObj) {
     });
 }
 export function setPhysicsObject(obj) {
-    console.log(obj.position);
     OIMOWorker.postMessage({
         command: "set",
         id: obj.uuid,

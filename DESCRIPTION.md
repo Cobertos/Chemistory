@@ -1,1 +1,1 @@
-Click on the desks to spawn physics items. If collisions aren't occuring, try refreshing. Loading current doesn't work
+Click on the desks to spawn physics items. Click on the physics items and then move the mouse to drag
