@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import $ from "jquery";
 import { addPhysicsObject, setPhysicsObject, delPhysicsObject } from "./OIMOManager";
-import buildInfo from "./buildInfo.json";
+import { BuildInfoWidget } from "./BuildInfoWidget";
 
 class ChemTable {
   constructor(spawnPos) {
@@ -74,35 +74,8 @@ class ChemItem {
 }
 
 $(()=>{
-  //Create the info section and button
-  let i = $(document.createElement("section"));
-  i.html(`
-    Welcome to Chemistory Dev! (version: ${buildInfo.commit} ${buildInfo.commit})<br>
-    <br>
-    ${buildInfo.description}<br>
-    <br>
-    New in this version:<br>
-    ${buildInfo.changelog}`);
-  i.css({
-    "position" : "absolute",
-    "left" : 0,
-    "top" : 0,
-    "z-index" : 2,
-    "background-color" : "#FFF"
-  });
-  i.hide();
-  $("body").append(i);
-
-  let b = $(document.createElement("button"));
-  b.text("(i)");
-  b.on("click", ()=>i.toggle());
-  b.css({
-    "position" : "absolute",
-    "left" : 0,
-    "top" : 0,
-    "z-index" : 3
-  });
-  $("body").append(b);
+  let bi = new BuildInfoWidget();
+  $("body").append(bi.$());
 
   let r = new THREE.WebGLRenderer({
     canvas: $("#game")[0]

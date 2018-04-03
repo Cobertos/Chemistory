@@ -2,3 +2,51 @@ body {
   margin:0;
   padding:0;
 }
+
+.buildInfo {
+	position: absolute;
+	left:0;
+	top:0;
+	z-index:3;
+	pointer-events:none;
+	user-select:none;
+	display:none;
+
+	max-width: 25%;
+	padding:14px;
+
+	font-family: Arial, sans-serif;
+	font-size: 16px;
+	background-color:rgba(0,0,0,0.4);
+	color: #FFF;
+
+	& > pre {
+		background-color:rgba(128,128,128,0.4);
+		padding:10px;
+		white-space: pre-wrap;
+	}
+
+	&.open {
+		display: block;
+	}
+}
+.buildInfoButton {
+	position: absolute;
+	left:0;
+	top:0;
+	z-index:5;
+	min-width:20px;
+	min-height:20px;
+
+	outline:none;
+	border:none;
+	background-color:#26E;
+
+	font-size: 20px;
+	font-weight:bold;
+	color: #FFF;
+
+	&.open {
+		background-color:#E54;
+	}
+}
