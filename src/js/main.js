@@ -119,13 +119,13 @@ $(()=>{
   requestAnimationFrame(l);
   window.s = s;
   
-  $(r.domElement).on("click", (e)=>{
+  let lastMP = undefined;
+  $(r.domElement).on("mousedown", (e)=>{
     let $canvas = $(e.target);
     let mp = conversions.viewportPXToviewportNDC($canvas, 
       conversions.windowPXToViewportPX($canvas, 
       conversions.eventToWindowPX(e)));
 
-    
     let rc = new THREE.Raycaster();
     rc.setFromCamera(mp, c);
     let hit = rc.intersectObjects(s.children);
@@ -134,9 +134,8 @@ $(()=>{
         h.object.onRaycast(h, s);
       }
     });
+    lastMP = mp;
   });
-
-  let lastMP = undefined;
   $(r.domElement).on("mousemove", (e)=>{
     if(!grabbedItem) {
       return;
@@ -146,10 +145,6 @@ $(()=>{
     let mp = conversions.viewportPXToviewportNDC($canvas, 
       conversions.windowPXToViewportPX($canvas, 
       conversions.eventToWindowPX(e)));
-    if(!lastMP) {
-      lastMP = mp;
-      return;
-    }
 
     //Get drag coordinate system
     let cy = THREE.Object3D.DefaultUp.clone(); //Maybe make camera up?
@@ -170,10 +165,8 @@ $(()=>{
     let projDist = dist.clone().projectOnVector(cz);
     let fov = c.fov * Math.PI/180;
     let fov_2 = fov/2;
-    console.log(fov);
     let yViewportWidthAtDist = Math.tan(fov_2) * projDist.length() * 2;
     let xViewportWidthAtDist = (c.aspect) * yViewportWidthAtDist;
-    console.log(xViewportWidthAtDist, yViewportWidthAtDist)
     //NDC to scaled NDC
     mouseDelta.multiply(new THREE.Vector2(xViewportWidthAtDist/2,yViewportWidthAtDist/2));
     let itemDelta = cx.clone().multiplyScalar(mouseDelta.x)
@@ -182,5 +175,13 @@ $(()=>{
     grabbedItem.position.add(itemDelta);
     setPhysicsObject(grabbedItem);
     lastMP = mp.clone();
+  });
+  $(r.domElement).on("mouseup", (e)=>{
+    if(!grabbedItem) {
+      return;
+    }
+    grabbedItem.material.color.set(new THREE.Color(1,0,0));
+    lastMP = undefined;
+    grabbedItem = undefined;
   });
 });
