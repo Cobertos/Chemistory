@@ -1,6 +1,12 @@
 import * as THREE from "three";
 import { World } from "oimo";
 
+//Feature TODO:
+//* Get velocities
+//* Listen for contacts
+//* Switching modes between static, dynamic, kinematic, etc?
+//* Making set actually work for dynamic
+
 const maxBodies = 1024;
 const dt = 1/30;
 const world = new World({
