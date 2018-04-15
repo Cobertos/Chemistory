@@ -31,7 +31,7 @@ class ChemTable {
     let g = new THREE.BoxBufferGeometry(1,1,1);
     let m = new THREE.MeshLambertMaterial({ color: 0xCCCCCC });
     let o = new THREE.Mesh(g, m);
-    o.scale.set(3.5,1.7,2);
+    o.scale.set(3.5,1,2);
     
     o.onBeforeRender = ()=>{
       if(Date.now() > _endTime) {
@@ -96,6 +96,103 @@ class ChemItem {
   }
 }
 
+const playerFOV = 75;
+const keybinds = {
+  up: 87, //W
+  down: 83, //S
+  left: 65, //A
+  right: 68 //D
+};
+const keys = {};
+const getKey = (key)=>!!keys[keybinds[key]];
+const _setKey = (keyCode, val)=>keys[keyCode] = val;
+$(window).on("keydown", function(e){
+  let keyCodes = Object.keys(keybinds).map((k)=>keybinds[k]);
+  if(keyCodes.indexOf(e.keyCode) !== -1) {
+    _setKey(e.keyCode, 1);
+  }
+});
+$(window).on("keyup", function(e){
+  let keyCodes = Object.keys(keybinds).map((k)=>keybinds[k]);
+  if(keyCodes.indexOf(e.keyCode) !== -1) {
+    _setKey(e.keyCode, 0);
+  }
+});
+
+class ChemPlayer {
+  constructor() {
+    let g = new THREE.CylinderBufferGeometry(1,1.7,1,10);
+    let m = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
+    let o = new THREE.Mesh(g, m);
+    let c = this._camera = new THREE.PerspectiveCamera(playerFOV, window.innerWidth / window.innerHeight, 0.1, 1000);
+    o.camera = c;
+    o.add(c);
+    c.position.set(0,5,-5);
+    c.lookAt(o.position);
+
+    o.onBeforeRender = ()=>{
+      let mov = new THREE.Vector3(0,0,0);
+      if(getKey("up")) {
+        mov.add(new THREE.Vector3(0,0,1));
+      }
+      if(getKey("down")) {
+        mov.add(new THREE.Vector3(0,0,-1));
+      }
+      if(getKey("left")) {
+        mov.add(new THREE.Vector3(1,0,1));
+      }
+      if(getKey("right")) {
+        mov.add(new THREE.Vector3(-1,0,1));
+      }
+      if(mov.lengthSq() < 0.01) {
+        return;
+      }
+
+      mov.normalize();
+      mov.multiplyScalar(0.25);
+      o.position.add(mov);
+      setPhysicsObject(o);
+    };
+
+    return o;
+  }
+
+  get camera() {
+    return this._camera;
+  }
+
+  static spawn(scene, spawnPos) {
+    let p = new ChemPlayer();
+    p.position.copy(spawnPos);
+    scene.add(p);
+    addPhysicsObject(p, {
+      type:"box",
+      move: true
+    });
+    return p;
+  }
+}
+
+class ChemLevel {
+  constructor() {
+    let g = new THREE.BoxBufferGeometry(100,1,100);
+    let m = new THREE.MeshLambertMaterial({ color: 0xAAAAAA });
+    let o = new THREE.Mesh(g, m);
+    return o;
+  }
+
+  static spawn(scene, spawnPos) {
+    let s = new ChemLevel();
+    s.position.copy(spawnPos);
+    scene.add(s);
+    addPhysicsObject(s, {
+      type:"box",
+      move: false
+    });
+    return s;
+  }
+}
+
 $(()=>{
   let bi = new BuildInfoWidget();
   $("body").append(bi.$());
@@ -103,17 +200,18 @@ $(()=>{
   let r = new THREE.WebGLRenderer({
     canvas: $("#game")[0]
   });
-  let s = new THREE.Scene();
-  let c = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
   r.setSize( window.innerWidth, window.innerHeight );
-  let light = new THREE.PointLight( 0xffffdd, 1, 100 );
+  let s = new THREE.Scene();
+  let floor = ChemLevel.spawn(s, new THREE.Vector3(0,-0.5,0));
+  let player = ChemPlayer.spawn(s, new THREE.Vector3(0,10,0));
+  let light = new THREE.PointLight( 0xffffdd, 4, 100 );
   light.position.set(0,2,0);
   s.add(light);
-  s.add(ChemTable.spawn(s, new THREE.Vector3(0,-2,-2)));
-  s.add(ChemTable.spawn(s, new THREE.Vector3(0,-2,-10)));
+  ChemTable.spawn(s, new THREE.Vector3(0,0.5,-2));
+  ChemTable.spawn(s, new THREE.Vector3(0,0.5,-10));
   
   let l = ()=>{
-    r.render(s, c);
+    r.render(s, player.camera);
     requestAnimationFrame(l);
   };
   requestAnimationFrame(l);
@@ -127,7 +225,7 @@ $(()=>{
       conversions.eventToWindowPX(e)));
 
     let rc = new THREE.Raycaster();
-    rc.setFromCamera(mp, c);
+    rc.setFromCamera(mp, player.camera);
     let hit = rc.intersectObjects(s.children);
     hit.forEach((h)=>{
       if(typeof h.object.onRaycast === "function") {
@@ -148,25 +246,25 @@ $(()=>{
 
     //Get drag coordinate system
     let cy = THREE.Object3D.DefaultUp.clone(); //Maybe make camera up?
-    let cz = c.getWorldDirection(new THREE.Vector3(0,0,0));
+    let cz = player.camera.getWorldDirection(new THREE.Vector3(0,0,0));
     let cx = cz.clone().cross(cy).normalize();
 
     //Find the distance of drag in each direction
     let rc = new THREE.Raycaster();
-    rc.setFromCamera(mp, c);
+    rc.setFromCamera(mp, player.camera);
     let r = rc.ray; //Get internal .origin and .direction
     let rc2 = new THREE.Raycaster();
-    rc2.setFromCamera(lastMP, c);
+    rc2.setFromCamera(lastMP, player.camera);
     let r2 = rc2.ray;
 
     let mouseDelta = mp.clone().sub(lastMP);
     let dist = grabbedItem.position.clone()
-      .sub(c.position);
+      .sub(player.camera.position);
     let projDist = dist.clone().projectOnVector(cz);
-    let fov = c.fov * Math.PI/180;
+    let fov = player.camera.fov * Math.PI/180;
     let fov_2 = fov/2;
     let yViewportWidthAtDist = Math.tan(fov_2) * projDist.length() * 2;
-    let xViewportWidthAtDist = (c.aspect) * yViewportWidthAtDist;
+    let xViewportWidthAtDist = (player.camera.aspect) * yViewportWidthAtDist;
     //NDC to scaled NDC
     mouseDelta.multiply(new THREE.Vector2(xViewportWidthAtDist/2,yViewportWidthAtDist/2));
     let itemDelta = cx.clone().multiplyScalar(mouseDelta.x)
