@@ -101,6 +101,12 @@ export class PhysicsPart {
     this._physScene.set(params, params.pos, dirtyRot ? params.rot : undefined);
   }
 
+  impulse(force, pos=undefined) {
+    this._physScene.impulse(this.getPhysicsParams(), 
+      pos ? pos.toArray() : this.getPhysicsParams().pos,
+      force.toArray());
+  }
+
   /**Get the physics parameters from the three.js/SimObject
    * @returns {object} physic parameters object
    */

@@ -17,8 +17,6 @@ export class ChemTable extends SimObject(THREE.Mesh, PhysicsPart) {
 
   onTick() {
     if(Date.now() > this._endTime) {
-      this.position.copy(this._endPos);
-      this.dirty();
       return;
     }
     

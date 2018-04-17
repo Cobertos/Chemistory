@@ -25,8 +25,9 @@ let fTime = [0,0,0];
 
 let simulating = false;
 
-let passPos = new THREE.Vector3(0,0,0);
-let passRot = new THREE.Quaternion(0,0,0,1);
+let passVec3 = new THREE.Vector3(0,0,0);
+let passVec3_2 = new THREE.Vector3(0,0,0);
+let passQuat = new THREE.Quaternion(0,0,0,1);
 
 self.onmessage = function(e) {
     if(e.data.command === "add") {
@@ -42,14 +43,22 @@ self.onmessage = function(e) {
         }
 
         //Set position and optionally quaternion
-        b.setPosition(passPos.fromArray(e.data.pos));
+        b.setPosition(passVec3.fromArray(e.data.pos));
         if(e.data.rot) {
-            b.setQuaternion(passRot.fromArray(e.data.rot));
+            b.setQuaternion(passQuat.fromArray(e.data.rot));
         }
     }
     else if(e.data.command === "del") {
         bodies[e.data.id].remove();
         delete bodies[e.data.id];
+    }
+    else if(e.data.command === "impulse") {
+        bodies[e.data.id].applyImpulse(
+            passVec3.fromArray(e.data.pos),
+            passVec3_2.fromArray(e.data.force));
+    }
+    else if(e.data.command === "loadbeat") {
+        self.postMessage({ loadbeat: true });
     }
 
     if(!simulating) {

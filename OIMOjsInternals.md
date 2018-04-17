@@ -15,7 +15,7 @@ Static is internally BODY_STATIC, while dynamic is BODY_DYNAMIC. Kinematic is BO
 * setRotation(r), as above, with euler angles
 * reset\*, as above, though resetPosition and resetPosition take x,y,z and not vec3. Will zero out velocity, linear and angular
 * getPosition, getQuaternion
-* applyImpulse(vec3:position, vec3:force), applies force scaled by 1/m at position for that frame
+* applyImpulse(vec3:position, vec3:force), applies force scaled by 1/m at position for that frame at global position
 * .linearVelocity, .angularVelocity, vec3 with each quantity
 
 ### Useful internals
