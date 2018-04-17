@@ -111,10 +111,19 @@ export class PhysicsPart {
    * @returns {object} physic parameters object
    */
   getPhysicsParams() {
+    let geo = this.geometry;
+    if(!geo.boundingBox) {
+      geo.computeBoundingBox();
+    }
+    let size = new THREE.Vector3();
+    let tmp = new THREE.Vector3();
+    geo.boundingBox.getSize(size)
+      .multiply(this.getWorldScale(tmp));
+
     return {
       id: this.uuid,
       pos: this.position.toArray(),
-      size: this.scale.toArray(),
+      size: size.toArray(),
       rot: this.quaternion.toArray()
     };
   }

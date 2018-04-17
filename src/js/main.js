@@ -27,7 +27,8 @@ const keybinds = {
   up: 87, //W
   down: 83, //S
   left: 65, //A
-  right: 68 //D
+  right: 68, //D
+  jump: 32 //space
 };
 const keys = {};
 const getKey = (key)=>!!keys[keybinds[key]];
@@ -67,17 +68,19 @@ class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
       mov.add(new THREE.Vector3(0,0,-1));
     }
     if(getKey("left")) {
-      mov.add(new THREE.Vector3(1,0,1));
+      mov.add(new THREE.Vector3(1,0,0));
     }
     if(getKey("right")) {
-      mov.add(new THREE.Vector3(-1,0,1));
+      mov.add(new THREE.Vector3(-1,0,0));
+    }
+    mov.normalize();
+
+    if(getKey("jump")) {
+      mov.add(new THREE.Vector3(0,3,0));
     }
     if(mov.lengthSq() < 0.01) {
       return;
     }
-
-    mov.normalize();
-    mov.multiplyScalar(0.25);
     console.log(mov);
     this.impulse(mov);
   }
