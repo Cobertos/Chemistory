@@ -38,14 +38,12 @@ self.onmessage = function(e) {
     else if(e.data.command === "set") {
         let b = bodies[e.data.id];
         if(b.isStatic) {
-            //Ugh, this is dumb, but apparently you have to do it this way?
-            //https://github.com/lo-th/Oimo.js/issues/33
-            b.position.copy(passPos.fromArray(e.data.pos));
-            b.quaternion.copy(passRot.fromArray(e.data.rot));
-            b.updatePosition(1);
+            throw new Error("Use o.move=true and o.isKinematic=true for static movables!");
         }
-        else {
-            b.setPosition(passPos.fromArray(e.data.pos));
+
+        //Set position and optionally quaternion
+        b.setPosition(passPos.fromArray(e.data.pos));
+        if(e.data.rot) {
             b.setQuaternion(passRot.fromArray(e.data.rot));
         }
     }

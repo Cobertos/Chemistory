@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import $ from "jquery";
-import { addPhysicsObject, setPhysicsObject, delPhysicsObject } from "./OIMOManager";
 import { BuildInfoWidget } from "./BuildInfoWidget";
+import { SimObject, SimScene, PhysicsPart } from "./BaseObject";
+import { ChemTable } from "./ChemTable";
+
 
 const conversions = {
   eventToWindowPX : (ev)=>{
@@ -19,82 +21,6 @@ const conversions = {
   }
 };
 
-let grabbedItem = undefined;
-
-class ChemTable {
-  constructor(spawnPos) {
-    const _fallTime = 1000;
-    const _endTime = Date.now() + _fallTime;
-    let _startPos = spawnPos.clone().add(new THREE.Vector3(0,5,0));
-    let _endPos = spawnPos.clone();
-    
-    let g = new THREE.BoxBufferGeometry(1,1,1);
-    let m = new THREE.MeshLambertMaterial({ color: 0xCCCCCC });
-    let o = new THREE.Mesh(g, m);
-    o.scale.set(3.5,1,2);
-    
-    o.onBeforeRender = ()=>{
-      if(Date.now() > _endTime) {
-        o.position.copy(_endPos);
-        setPhysicsObject(o);
-        return;
-      }
-      
-      let deltaFrac = 1 - (_endTime - Date.now()) / _fallTime;
-      let currPos = _startPos.clone()
-                      .add(_endPos.clone()
-                           .sub(_startPos)
-                           .multiplyScalar(deltaFrac));
-      o.position.copy(currPos);
-      setPhysicsObject(o);
-    };
-    
-    o.onRaycast = (hitInfo, scene)=>{
-      let ci = ChemItem.spawn(scene, 
-        _endPos.clone().add(new THREE.Vector3(0,2,0)),
-        new THREE.Color(1,0,0));
-    };
-    
-    return o;
-  }
-  
-  static spawn(scene, spawnPos) {
-    let t = new ChemTable(spawnPos);
-    scene.add(t);
-    addPhysicsObject(t, {
-        type: "box",
-        move: false
-      });
-    return t;
-  }
-}
-
-class ChemItem {
-  constructor(spawnPos, color) {
-    let g = new THREE.CylinderBufferGeometry(1,1,1,10);
-    let m = new THREE.MeshLambertMaterial({ color: color });
-    let o = new THREE.Mesh(g, m);
-    o.position.copy(spawnPos);
-    o.scale.set(0.125,0.125,0.125);
-    
-    o.onRaycast = (hitInfo, scene)=>{
-      grabbedItem = o;
-      o.material.color.set(new THREE.Color(0,0.5,1));
-    };
-    
-    return o;
-  }
-  
-  static spawn(scene, spawnPos, color) {
-    let i = new ChemItem(spawnPos, color);
-    scene.add(i);
-    addPhysicsObject(i, {
-        type:"cylinder",
-        move: true
-      }); 
-    return i;
-  }
-}
 
 const playerFOV = 75;
 const keybinds = {
@@ -119,80 +45,71 @@ $(window).on("keyup", function(e){
   }
 });
 
-class ChemPlayer {
-  constructor() {
+class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
+  constructor(spawnPos) {
     let g = new THREE.CylinderBufferGeometry(1,1.7,1,10);
     let m = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
-    let o = new THREE.Mesh(g, m);
+    super(g, m);
+    this.position.copy(spawnPos);
     let c = this._camera = new THREE.PerspectiveCamera(playerFOV, window.innerWidth / window.innerHeight, 0.1, 1000);
-    o.camera = c;
-    o.add(c);
+    this.add(c);
     c.position.set(0,5,-5);
-    c.lookAt(o.position);
+    c.lookAt(this.position);
+  }
 
-    o.onBeforeRender = ()=>{
-      let mov = new THREE.Vector3(0,0,0);
-      if(getKey("up")) {
-        mov.add(new THREE.Vector3(0,0,1));
-      }
-      if(getKey("down")) {
-        mov.add(new THREE.Vector3(0,0,-1));
-      }
-      if(getKey("left")) {
-        mov.add(new THREE.Vector3(1,0,1));
-      }
-      if(getKey("right")) {
-        mov.add(new THREE.Vector3(-1,0,1));
-      }
-      if(mov.lengthSq() < 0.01) {
-        return;
-      }
+  onTick() {
+    let mov = new THREE.Vector3(0,0,0);
+    if(getKey("up")) {
+      mov.add(new THREE.Vector3(0,0,1));
+    }
+    if(getKey("down")) {
+      mov.add(new THREE.Vector3(0,0,-1));
+    }
+    if(getKey("left")) {
+      mov.add(new THREE.Vector3(1,0,1));
+    }
+    if(getKey("right")) {
+      mov.add(new THREE.Vector3(-1,0,1));
+    }
+    if(mov.lengthSq() < 0.01) {
+      return;
+    }
 
-      mov.normalize();
-      mov.multiplyScalar(0.25);
-      o.position.add(mov);
-      setPhysicsObject(o);
-    };
-
-    return o;
+    mov.normalize();
+    mov.multiplyScalar(0.25);
+    this.position.add(mov);
+    this.dirty();
   }
 
   get camera() {
     return this._camera;
   }
 
-  static spawn(scene, spawnPos) {
-    let p = new ChemPlayer();
-    p.position.copy(spawnPos);
-    scene.add(p);
-    addPhysicsObject(p, {
+  getPhysicsParams() {
+    return Object.assign(super.getPhysicsParams(), {
       type:"box",
       move: true
     });
-    return p;
   }
 }
 
-class ChemLevel {
-  constructor() {
+class ChemLevel extends SimObject(THREE.Scene, PhysicsPart) {
+  constructor(spawnPos) {
     let g = new THREE.BoxBufferGeometry(100,1,100);
     let m = new THREE.MeshLambertMaterial({ color: 0xAAAAAA });
-    let o = new THREE.Mesh(g, m);
-    return o;
+    super(g, m);
+    this.position.copy(spawnPos);
   }
 
-  static spawn(scene, spawnPos) {
-    let s = new ChemLevel();
-    s.position.copy(spawnPos);
-    scene.add(s);
-    addPhysicsObject(s, {
+  getPhysicsParams() {
+    return Object.assign(super.getPhysicsParams(), {
       type:"box",
       move: false
     });
-    return s;
   }
 }
 
+let grabbedItem;
 $(()=>{
   let bi = new BuildInfoWidget();
   $("body").append(bi.$());
@@ -201,17 +118,25 @@ $(()=>{
     canvas: $("#game")[0]
   });
   r.setSize( window.innerWidth, window.innerHeight );
-  let s = new THREE.Scene();
-  let floor = ChemLevel.spawn(s, new THREE.Vector3(0,-0.5,0));
-  let player = ChemPlayer.spawn(s, new THREE.Vector3(0,10,0));
+  let s = new SimScene();
+  let floor = new ChemLevel(new THREE.Vector3(0,-0.5,0));
+  s.add(floor);
+
+  let player = new ChemPlayer(new THREE.Vector3(0,0.5,0));
+  s.add(player);
+
   let light = new THREE.PointLight( 0xffffdd, 4, 100 );
   light.position.set(0,2,0);
   s.add(light);
-  ChemTable.spawn(s, new THREE.Vector3(0,0.5,-2));
-  ChemTable.spawn(s, new THREE.Vector3(0,0.5,-10));
+
+  let table1 = new ChemTable(new THREE.Vector3(0,0.5,-2));
+  s.add(table1);
+
+  let table2 = new ChemTable(new THREE.Vector3(0,0.5,-10));
+  s.add(table2);
   
   let l = ()=>{
-    r.render(s, player.camera);
+    r.render(s._three, player.camera);
     requestAnimationFrame(l);
   };
   requestAnimationFrame(l);
@@ -226,7 +151,7 @@ $(()=>{
 
     let rc = new THREE.Raycaster();
     rc.setFromCamera(mp, player.camera);
-    let hit = rc.intersectObjects(s.children);
+    let hit = rc.intersectObjects(s._three.children);
     hit.forEach((h)=>{
       if(typeof h.object.onRaycast === "function") {
         h.object.onRaycast(h, s);
@@ -271,7 +196,7 @@ $(()=>{
       .add(cy.clone().multiplyScalar(mouseDelta.y));
 
     grabbedItem.position.add(itemDelta);
-    setPhysicsObject(grabbedItem);
+    grabbedItem.dirty();
     lastMP = mp.clone();
   });
   $(r.domElement).on("mouseup", (e)=>{
