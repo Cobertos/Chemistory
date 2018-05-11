@@ -73,15 +73,15 @@ export class OIMOScene {
 
     /**Given a physics object, will set a new position
      * and optionally rotation
-     * @param {object} physObj The physics object with id
-     * @param {Number[3]} pos The position to set to
-     * @param {Number[4]} [rot=undefined] The rotation to set to
+     * @param {object} physObj The physics object with id with new pos and rot
+     * @param {boolean} [dirtyPos=true] Conditionally set pos of data
+     * @param {boolean} [dirtyRot=true] Conditionally set rot of data
      */
-    set(physObj, pos, rot=undefined) {
+    set(physObj, setPos=true, setRot=true) {
         this._worker.postMessage({
             command: "set",
-            id: physObj.id,
-            pos, rot
+            obj: physObj,
+            setPos, setRot
         });
     }
 
@@ -125,5 +125,21 @@ export class OIMOScene {
             "Physics: " + oimoInfo +" fps<br>",
             "Render: " + this._fpsint +" fps<br>"
         ].join("\n");
+    }
+
+    /**Starts the simulation
+     */
+    play() {
+        this._worker.postMessage({
+            command: "play"
+        });
+    }
+
+    /**Pauses the simulation
+     */
+    pause() {
+        this._worker.postMessage({
+            command: "pause"
+        });
     }
 }

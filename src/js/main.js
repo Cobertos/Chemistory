@@ -23,36 +23,45 @@ const conversions = {
 
 
 const playerFOV = 75;
-const keybinds = {
+const inputBinds = {
   up: 87, //W
   down: 83, //S
   left: 65, //A
   right: 68, //D
-  jump: 32 //space
+  jump: 32, //space
+  look: "mouse"
 };
-const keys = {};
-const getKey = (key)=>!!keys[keybinds[key]];
-const _setKey = (keyCode, val)=>keys[keyCode] = val;
+const inputKeyCodes = ()=>Object.keys(inputBinds)
+    .map((k)=>inputBinds[k])
+    .filter((i)=>typeof i === "number");
+const inputVals = {};
+const getInput = (bindName)=>inputVals[inputBinds[bindName]];
+const _setInput = (id, val)=>inputVals[id] = val;
 $(window).on("keydown", function(e){
-  let keyCodes = Object.keys(keybinds).map((k)=>keybinds[k]);
-  if(keyCodes.indexOf(e.keyCode) !== -1) {
-    _setKey(e.keyCode, 1);
+  if(inputKeyCodes().indexOf(e.keyCode) !== -1) {
+    _setInput(e.keyCode, true);
   }
 });
 $(window).on("keyup", function(e){
-  let keyCodes = Object.keys(keybinds).map((k)=>keybinds[k]);
-  if(keyCodes.indexOf(e.keyCode) !== -1) {
-    _setKey(e.keyCode, 0);
+  if(inputKeyCodes().indexOf(e.keyCode) !== -1) {
+    _setInput(e.keyCode, false);
   }
+});
+$(window).on("mousemove", function(e){
+  //TODO: This should work, but I realized I didn't need it rn
+  //let pos = conversions.eventToWindowPX(e);
+  //TODO: Use the renderer, not window/body
+  //(honestly this should all be in it's own class)
+  //pos = conversions.viewportPXToviewportNDC($("body"), pos);
+  //_setInput("mouse", pos);
 });
 
 class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
-  constructor(spawnPos) {
+  constructor() {
     let g = new THREE.CylinderBufferGeometry(0.7,1,1,10);
     let m = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
     super(g, m);
     this.scale.set(1,1.7,1);
-    this.position.copy(spawnPos);
     let c = this._camera = new THREE.PerspectiveCamera(playerFOV, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.add(c);
     c.position.set(0,3,-5);
@@ -60,27 +69,36 @@ class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
   }
 
   onTick() {
+    //Fix the rotation of the player (TODO:honestly this should be a physics
+    //engine constraint but Oimo doesnt support that out of the box)
+    this.quaternion.copy(
+        new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(0,0,1), 0));
+    this.dirty(false, true); //Propogate to the physics engine
+
+    //Calculate player movement
     let mov = new THREE.Vector3(0,0,0);
-    if(getKey("up")) {
+    if(getInput("up")) {
       mov.add(new THREE.Vector3(0,0,1));
     }
-    if(getKey("down")) {
+    if(getInput("down")) {
       mov.add(new THREE.Vector3(0,0,-1));
     }
-    if(getKey("left")) {
+    if(getInput("left")) {
       mov.add(new THREE.Vector3(1,0,0));
     }
-    if(getKey("right")) {
+    if(getInput("right")) {
       mov.add(new THREE.Vector3(-1,0,0));
     }
     mov.normalize();
 
-    if(getKey("jump")) {
+    if(getInput("jump")) {
       mov.add(new THREE.Vector3(0,3,0));
     }
     if(mov.lengthSq() < 0.01) {
       return;
     }
+
     console.log(mov);
     this.impulse(mov);
   }
@@ -101,9 +119,8 @@ class ChemLevel extends SimObject(THREE.Mesh, PhysicsPart) {
   constructor(spawnPos) {
     let g = new THREE.BoxBufferGeometry(1,1,1);
     let m = new THREE.MeshLambertMaterial({ color: 0xAAAAAA });
-    super(g, m);
+    super(g,m);
     this.scale.set(100,20,100);
-    this.position.copy(spawnPos);
   }
 
   getPhysicsParams() {
@@ -116,7 +133,6 @@ class ChemLevel extends SimObject(THREE.Mesh, PhysicsPart) {
 
 const s = new SimScene();
 s._phys.onLoad().then(()=>{
-
   let grabbedItem;
   $(()=>{
     let bi = new BuildInfoWidget();
@@ -127,10 +143,12 @@ s._phys.onLoad().then(()=>{
     });
     r.setSize( window.innerWidth, window.innerHeight );
     
-    let floor = new ChemLevel(new THREE.Vector3(0,-10,0));
+    let floor = new ChemLevel();
+    floor.position.copy(new THREE.Vector3(0,-10,0));
     s.add(floor);
 
-    let player = new ChemPlayer(new THREE.Vector3(0,0.5,0));
+    let player = new ChemPlayer();
+    player.position.copy(new THREE.Vector3(0,0.5,0));
     s.add(player);
 
     // ambient light
@@ -234,5 +252,7 @@ s._phys.onLoad().then(()=>{
       lastMP = undefined;
       grabbedItem = undefined;
     });
+
+    s._phys.play();
   });
 });

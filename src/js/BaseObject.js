@@ -91,14 +91,16 @@ export class PhysicsPart {
     this.angularVelocity = undefined;
 
     this._physScene = undefined;
+
+    //gets sent to the physics engine on added to scene
   }
 
-  dirty(dirtyRot=false) {
+  dirty(dirtyPos=true, dirtyRot=false) {
     if(!this._physScene) {
       throw new Error("No physics scene");
     }
     let params = this.getPhysicsParams();
-    this._physScene.set(params, params.pos, dirtyRot ? params.rot : undefined);
+    this._physScene.set(params, dirtyPos, dirtyRot);
   }
 
   impulse(force, pos=undefined) {

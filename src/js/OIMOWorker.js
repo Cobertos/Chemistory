@@ -23,7 +23,7 @@ const bodyData = new Float32Array( maxBodies * 8 );
 let fps = 0;
 let fTime = [0,0,0];
 
-let simulating = false;
+let simulationInterval = undefined;
 
 let passVec3 = new THREE.Vector3(0,0,0);
 let passVec3_2 = new THREE.Vector3(0,0,0);
@@ -37,15 +37,20 @@ self.onmessage = function(e) {
         bodies[e.data.id] = world.add(e.data.data);
     }
     else if(e.data.command === "set") {
-        let b = bodies[e.data.id];
+        let obj = e.data.obj;
+        let b = bodies[obj.id];
         if(b.isStatic) {
             throw new Error("Use o.move=true and o.isKinematic=true for static movables!");
         }
 
-        //Set position and optionally quaternion
-        b.setPosition(passVec3.fromArray(e.data.pos));
-        if(e.data.rot) {
-            b.setQuaternion(passQuat.fromArray(e.data.rot));
+        //Set position and optionally quaternion, don't use setPosition or setQuaternion
+        //because it sets linear and angular velocity to really bizarre values and
+        //will also cause any applyImpulses to fail due to it zeroing out these values first
+        if(e.data.setPos) {
+            b.position.copy(passVec3.fromArray(obj.pos));
+        }
+        if(e.data.setRot) {
+            b.orientation.copy(passQuat.fromArray(obj.rot));
         }
     }
     else if(e.data.command === "del") {
@@ -60,10 +65,12 @@ self.onmessage = function(e) {
     else if(e.data.command === "loadbeat") {
         self.postMessage({ loadbeat: true });
     }
-
-    if(!simulating) {
-        setInterval( step, dt*1000 );
-        simulating = true;
+    else if(e.data.command === "play" && simulationInterval === undefined) {
+        simulationInterval = setInterval( step, dt*1000 );
+    }
+    else if(e.data.command === "pause" && simulationInterval !== undefined) {
+        clearInterval(simulationInterval);
+        simulationInterval = undefined;
     }
 };
 function step() {

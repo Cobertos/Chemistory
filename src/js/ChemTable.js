@@ -13,6 +13,7 @@ export class ChemTable extends SimObject(THREE.Mesh, PhysicsPart) {
     this._endTime = Date.now() + this._fallTime;
     this._startPos = spawnPos.clone().add(new THREE.Vector3(0,5,0));
     this._endPos = spawnPos.clone();
+    this.position.copy(this._startPos.clone());
   }
 
   onTick() {
