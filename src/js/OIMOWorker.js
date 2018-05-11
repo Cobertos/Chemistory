@@ -1,5 +1,4 @@
-import * as THREE from "three";
-import { World } from "oimo";
+import { World, Vec3 } from "oimo";
 
 //Feature TODO:
 //* Get velocities
@@ -25,10 +24,6 @@ let fTime = [0,0,0];
 
 let simulationInterval = undefined;
 
-let passVec3 = new THREE.Vector3(0,0,0);
-let passVec3_2 = new THREE.Vector3(0,0,0);
-let passQuat = new THREE.Quaternion(0,0,0,1);
-
 self.onmessage = function(e) {
     if(e.data.command === "add") {
         //world.add({size:[200, 20, 200], pos:[0,-10,0]}); //Ground plan
@@ -47,10 +42,16 @@ self.onmessage = function(e) {
         //because it sets linear and angular velocity to really bizarre values and
         //will also cause any applyImpulses to fail due to it zeroing out these values first
         if(e.data.setPos) {
-            b.position.copy(passVec3.fromArray(obj.pos));
+            b.position.fromArray(obj.pos);
         }
         if(e.data.setRot) {
-            b.orientation.copy(passQuat.fromArray(obj.rot));
+            b.orientation.fromArray(obj.rot);
+        }
+        if(e.data.setVel) {
+            b.linearVelocity.fromArray(obj.vel);
+        }
+        if(e.data.setAngVel) {
+            b.angularVelocity.fromArray(obj.angVel);
         }
     }
     else if(e.data.command === "del") {
@@ -59,8 +60,8 @@ self.onmessage = function(e) {
     }
     else if(e.data.command === "impulse") {
         bodies[e.data.id].applyImpulse(
-            passVec3.fromArray(e.data.pos),
-            passVec3_2.fromArray(e.data.force));
+            new Vec3().fromArray(e.data.pos),
+            new Vec3().fromArray(e.data.force));
     }
     else if(e.data.command === "loadbeat") {
         self.postMessage({ loadbeat: true });
@@ -85,6 +86,8 @@ function step() {
         if(!bodyData[offset]) {
             b.getPosition().toArray( bodyData, offset + 1 );
             b.getQuaternion().toArray( bodyData, offset + 4 );
+            b.linearVelocity.toArray( bodyData, offset + 8 );
+            b.angularVelocity.toArray( bodyData, offset + 11 );
         }
     });
 

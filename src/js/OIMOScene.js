@@ -42,6 +42,8 @@ export class OIMOScene {
             if(bodyData[offset] !== 1){ //not asleep || static
                 o.position.fromArray( bodyData, offset+1);
                 o.quaternion.fromArray( bodyData, offset+4 );
+                o.linearVelocity.fromArray( bodyData, offset+8);
+                o.angularVelocity.fromArray( bodyData, offset+11);
                 if(typeof o.onPhysicsTick === "function") {
                     o.onPhysicsTick();
                 }
@@ -74,14 +76,16 @@ export class OIMOScene {
     /**Given a physics object, will set a new position
      * and optionally rotation
      * @param {object} physObj The physics object with id with new pos and rot
-     * @param {boolean} [dirtyPos=true] Conditionally set pos of data
-     * @param {boolean} [dirtyRot=true] Conditionally set rot of data
+     * @param {boolean} [setPos=true] Conditionally set pos of data
+     * @param {boolean} [setRot=true] Conditionally set rot of data
+     * @param {boolean} [setVel=false] Conditionally set linear velocity
+     * @param {boolean} [setAngVel=false] Conditionally set angular velocity
      */
-    set(physObj, setPos=true, setRot=true) {
+    set(physObj, setPos=true, setRot=true, setVel=false, setAngVel=false) {
         this._worker.postMessage({
             command: "set",
             obj: physObj,
-            setPos, setRot
+            setPos, setRot, setVel, setAngVel
         });
     }
 

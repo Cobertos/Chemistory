@@ -74,7 +74,8 @@ class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
     this.quaternion.copy(
         new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(0,0,1), 0));
-    this.dirty(false, true); //Propogate to the physics engine
+    this.angularVelocity = new THREE.Vector3(0,0,0);
+    this.dirty(false, true, false, true); //Propogate to the physics engine
 
     //Calculate player movement
     let mov = new THREE.Vector3(0,0,0);

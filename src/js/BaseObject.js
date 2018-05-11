@@ -85,22 +85,22 @@ export class DefaultPart {
 export class PhysicsPart {
   get supportsPhysics() { return true; }
 
-  constructor() {
+  initializer() { //aggregation constructor
     //Extra parameters from physics simulation
-    this.linearVelocity = undefined;
-    this.angularVelocity = undefined;
+    this.linearVelocity = new THREE.Vector3(0,0,0);
+    this.angularVelocity = new THREE.Vector3(0,0,0);
 
     this._physScene = undefined;
 
     //gets sent to the physics engine on added to scene
   }
 
-  dirty(dirtyPos=true, dirtyRot=false) {
+  dirty(dirtyPos=true, dirtyRot=false, dirtyVel=false, dirtyAngVel=false) {
     if(!this._physScene) {
       throw new Error("No physics scene");
     }
     let params = this.getPhysicsParams();
-    this._physScene.set(params, dirtyPos, dirtyRot);
+    this._physScene.set(params, dirtyPos, dirtyRot, dirtyVel, dirtyAngVel);
   }
 
   impulse(force, pos=undefined) {
@@ -126,7 +126,9 @@ export class PhysicsPart {
       id: this.uuid,
       pos: this.position.toArray(),
       size: size.toArray(),
-      rot: this.quaternion.toArray()
+      rot: this.quaternion.toArray(),
+      vel: this.linearVelocity.toArray(),
+      angVel: this.angularVelocity.toArray()
     };
   }
 }
