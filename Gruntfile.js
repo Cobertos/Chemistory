@@ -17,20 +17,23 @@ var readFilePromise = (file, encoding)=>{
 };
 
 //Global build info, fetched asynchronously (there's a task that waits for it)
-var repo = NodeGit.Repository.open(".");
 var substituteLoaderOptions = {};
-var buildInfo = RSVP.hash({
-	branch: repo.then((repo)=>repo.getCurrentBranch())
-				.then((ref)=>ref.name()),
-	commit: repo.then((repo)=>repo.getHeadCommit())
-				.then((commit)=>commit.id().tostrS().slice(-8)),
-	description: readFilePromise("DESCRIPTION.md", "utf8"),
-	changelog: readFilePromise("CHANGELOG.md", "utf8")
-}).then((o)=>{
-	buildInfo=o;
-	substituteLoaderOptions.substitute=JSON.stringify(o);
-	return o;
-});
+var getLatestBuildInfo = ()=>{
+	var repo = NodeGit.Repository.open(".");
+	var buildInfoPromise = RSVP.hash({
+		branch: repo.then((repo)=>repo.getCurrentBranch())
+					.then((ref)=>ref.name()),
+		commit: repo.then((repo)=>repo.getHeadCommit())
+					.then((commit)=>commit.id().tostrS().slice(-8)),
+		description: readFilePromise("DESCRIPTION.md", "utf8"),
+		changelog: readFilePromise("CHANGELOG.md", "utf8"),
+		time: Date.now()
+	}).then((o)=>{
+		substituteLoaderOptions.substitute=JSON.stringify(o);
+		return o;
+	});
+	return buildInfoPromise;
+};
 
 module.exports = function(grunt) {
 
@@ -195,23 +198,18 @@ module.exports = function(grunt) {
 	require('time-grunt')(grunt);
 
 	//Parts
-	grunt.registerTask('waitForBuildInfo', 'waits', function(){
-		if(!(typeof buildInfo.then === "function")) {
-			console.log("Got build info", buildInfo);
-			return; //Promise already resolved
-		}
-		//Otherwise, Wait for promise
-		console.log("Getting build info");
+	grunt.registerTask('updateBuildInfo', 'Updates the build info object', function(){
 		let done = this.async();
-		buildInfo.then(()=>{
-					console.log("Got build info", buildInfo);
-					done();
-				}).catch((err)=>{
-					console.error("Failed to get build info");
-					setTimeout(()=>{throw err;}, 0);
-				});
+		console.log("Getting build info");
+		getLatestBuildInfo().then((info)=>{
+				console.log("Got build info", info);
+				done();
+			}).catch((err)=>{
+				console.error("Failed to get build info");
+				setTimeout(()=>{throw err;}, 0);
+			});
 	});
-	grunt.registerTask('buildJS', ["waitForBuildInfo", "webpack:dist"]);
+	grunt.registerTask('buildJS', ["updateBuildInfo", "webpack:dist"]);
 	grunt.registerTask('buildCSS', ["sass:dist"]);
 	grunt.registerTask('buildOther', ["sync:dist", "sync:js"]);
 

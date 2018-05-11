@@ -1,4 +1,5 @@
 import $ from "jquery";
+import moment from "moment";
 import buildInfo from "./buildInfo.json";
 
 export class BuildInfoWidget {
@@ -6,7 +7,10 @@ export class BuildInfoWidget {
     let $html = $($.parseHTML(`
     <button class="buildInfoButton open">X</button>
     <section class="buildInfo open">
-      <h2>Welcome to Chemistory Dev! (${buildInfo.branch} - ${buildInfo.commit})</h2>
+      <h2>
+        Welcome to Chemistory Dev! (${buildInfo.branch} - ${buildInfo.commit})<br>
+        Built ${moment(buildInfo.time).fromNow()}
+      </h2>
       <pre>${buildInfo.description}</pre>
       <h4>New in this version:</h4>
       <pre>${buildInfo.changelog}</pre>

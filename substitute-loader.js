@@ -1,5 +1,5 @@
 //Substitute w/ options.substitute
 module.exports = function(source) {
-  this.cacheable();
+  //this.cacheable();
   return this.query.substitute;
 };
