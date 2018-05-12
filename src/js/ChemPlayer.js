@@ -16,7 +16,8 @@ export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
     c.lookAt(this.position);
   }
 
-  onTick() {
+  onPhysicsTick() {
+    console.log("ASD");
     //Fix the rotation of the player (TODO:honestly this should be a physics
     //engine constraint but Oimo doesnt support that out of the box)
     this.quaternion.copy(
@@ -58,7 +59,8 @@ export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
   getPhysicsParams() {
     return Object.assign(super.getPhysicsParams(), {
       type:"box",
-      move: true
+      move: true,
+      neverSleep: true //Used to force onPhysicsTick to always run
     });
   }
 }

@@ -12,12 +12,10 @@ export class OIMOScene {
         this._worker.postMessage = this._worker.webkitPostMessage || this._worker.postMessage;
         this._worker.onmessage = this.onMessage.bind(this);
 
-        this._fps;
-        this._time_prev = 0;
-        this._fpsint = 0;
-
         this._workerLoaded = false;
         this._workerPromise = new PromiseProxy();
+
+        this._lastFPS = 0;
 
         this._loadInterval = setInterval(()=>{
             this._worker.postMessage({ command: "loadbeat" });
@@ -32,8 +30,8 @@ export class OIMOScene {
             return;
         }
 
-        // stat
-        this._fps = e.data.fps;
+        this._lastFPS = e.data.fps;
+
         // Get fresh data from the worker
         let bodyData = e.data.data;
         Object.keys(this._objects).forEach((key,i)=>{
@@ -44,6 +42,8 @@ export class OIMOScene {
                 o.quaternion.fromArray( bodyData, offset+4 );
                 o.linearVelocity.fromArray( bodyData, offset+8);
                 o.angularVelocity.fromArray( bodyData, offset+11);
+                //TODO: This should work for ALL OBJECTS, not just non-sleeping
+                //dynamic ones
                 if(typeof o.onPhysicsTick === "function") {
                     o.onPhysicsTick();
                 }
@@ -114,21 +114,11 @@ export class OIMOScene {
         });
     }
 
-    /**Gets performance info and other statistics for this OIMO simulation
-     * @returns {string} HTML string of performance information
+    /**Gets the currect fps
+     * @returns {number} The last FPS received from the OIMOWorker
      */
-    getInfo() {
-        let time = Date.now();
-        if (time - 1000 > this._time_prev) {
-            this._time_prev = time;
-            this._fpsint = this._fps;
-            this._fps = 0;
-        } fps++;
-        var info =[
-            "Oimo.js DEV.1.1.1a<br><br>",
-            "Physics: " + oimoInfo +" fps<br>",
-            "Render: " + this._fpsint +" fps<br>"
-        ].join("\n");
+    get fps() {
+        return this._lastFPS;
     }
 
     /**Starts the simulation

@@ -15,6 +15,7 @@
     "moment": "^2.22.1",
     "oimo": "^1.0.9",
     "rsvp": "^4.8.1",
+    "stats.js": "^0.17.0",
     "three": "^0.91.0"
   },
   "devDependencies": {

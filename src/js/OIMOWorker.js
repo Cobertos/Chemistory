@@ -19,9 +19,6 @@ const world = new World({
 const bodies = {}; //Holds all the Physics bodies tied to their THREEjs UUID
 const bodyData = new Float32Array( maxBodies * 8 );
 
-let fps = 0;
-let fTime = [0,0,0];
-
 let simulationInterval = undefined;
 
 self.onmessage = function(e) {
@@ -74,6 +71,8 @@ self.onmessage = function(e) {
         simulationInterval = undefined;
     }
 };
+
+let lastStepTime = 0;
 function step() {
     // Step the world
     world.step();
@@ -91,18 +90,18 @@ function step() {
         }
     });
 
-    //Calculate FPS
-    fTime[1] = Date.now();
-    if (fTime[1]-1000 > fTime[0]){
-        fTime[0] = fTime[1];
-        fps = fTime[2];
-        fTime[2] = 0;
-    }
-    fTime[2]++;
+    //FPS - Need to calculate in here so the FPS is calculated on
+    //the right thread
+    //TODO: Is this the right way to do this? Or is it better to use the
+    //1000ms counter approach? Stats.js seems to use the counter approac
+    //as well
+    let now = Date.now();
+    let fps = 1000 / (now - lastStepTime);
+    lastStepTime = now;
 
     //Post message with data back
     self.postMessage({
-        fps:fps,
+        fps,
         data:bodyData
     });
 }

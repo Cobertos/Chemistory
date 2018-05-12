@@ -8,6 +8,8 @@ This doesn't cover any THREEjs integration (as webworkers cant use this anyway)
 
 Static is internally BODY_STATIC, while dynamic (move) is BODY_DYNAMIC. Kinematic is BODY_STATIC with isKinematic flag. There's also BODY_KINEMATIC which is unused. BODY_GHOST is also defined but unused.
 
+There's also a neverSleep flag which will cuse the object to never sleep
+
 ### Getting and setting properties
 
 * setPosition(vec3), sets the position of an object, must be kinematic or dynamic, otherwise you need hacky updatePosition() call (sets isKinematic if false, also sets controlPos for next frame). This also itself does a bunch of weird shit when setting position (including clearing velocities sometimes or changing them to some weird values) so don't use this

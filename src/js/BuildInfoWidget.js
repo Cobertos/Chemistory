@@ -35,4 +35,8 @@ export class BuildInfoWidget {
   $() {
     return this._$;
   }
+
+  $body() {
+    return this._$.find(".buildInfo").addBack(".buildInfo").first();
+  }
 }
