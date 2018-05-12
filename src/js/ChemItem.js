@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { SimObject, SimScene, PhysicsPart } from "./BaseObject";
+import { SimObject, PhysicsPart } from "./BaseObject";
 
 export class ChemItem extends SimObject(THREE.Mesh, PhysicsPart){
   constructor(spawnPos, color) {

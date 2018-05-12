@@ -4,7 +4,7 @@ const {Promise} = RSVP;
 import "three-examples/loaders/LoaderSupport.js"; //Loads to THREE.LoaderSupport
 import "three-examples/loaders/OBJLoader2.js"; //Loads to THREE.OBJLoader2
 import "three-examples/loaders/MTLLoader.js"; //Loads to THREE.MTLLoader
-import "./physi.js";
+import "./physi.js"; /* global Physijs */
 
 let loader = new THREE.TextureLoader();
 let defaultMaterial = Physijs.createMaterial(
@@ -19,7 +19,7 @@ export class LevelLoader {
   constructor() {}
   load(url) {
     let loader = new THREE.OBJLoader2();
-    return new Promise((resolve, reject)=> {
+    return new Promise((resolve/*, reject*/)=> {
       loader.loadMtl(url + ".mtl", undefined, resolve);
     }).then((mtlCreator)=>{
       return new Promise((resolve, reject)=>{
