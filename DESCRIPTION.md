@@ -1,1 +1,3 @@
-Click on the desks to spawn physics items. Click on the physics items and then move the mouse to drag
+Click on the desks to spawn physics items.
+<b>W A S D</b> for movement.
+<b>Space</b> for continuous jump.
