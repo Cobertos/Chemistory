@@ -40,8 +40,7 @@ export class ChemTable extends SimObject(THREE.Mesh, PhysicsPart) {
   getPhysicsParams() {
     return Object.assign(super.getPhysicsParams(), {
       type: "box",
-      move: true,
-      isKinematic: true
+      kinematic: true
     });
   }
 }

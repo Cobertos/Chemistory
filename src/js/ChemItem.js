@@ -11,7 +11,7 @@ export class ChemItem extends SimObject(THREE.Mesh, PhysicsPart){
   }
 
   onRaycast(hitInfo, scene) {
-    o.material.color.set(new THREE.Color(0,0.5,1));
+    this.material.color.set(new THREE.Color(0,0.5,1));
   }
 
   getPhysicsParams() {

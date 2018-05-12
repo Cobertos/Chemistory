@@ -34,8 +34,8 @@ self.onmessage = function(e) {
     else if(e.data.command === "set") {
         let obj = e.data.obj;
         let b = bodies[obj.id];
-        if(b.isStatic) {
-            throw new Error("Use o.move=true and o.isKinematic=true for static movables!");
+        if(b.isStatic && !b.isKinematic) {
+            throw new Error("Use o.move=true and o.kinematic=true for static movables!");
         }
 
         //Set position and optionally quaternion, don't use setPosition or setQuaternion
