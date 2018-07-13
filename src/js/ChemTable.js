@@ -7,6 +7,7 @@ export class ChemTable extends SimObject(THREE.Mesh, PhysicsPart) {
     let g = new THREE.BoxBufferGeometry(1,1,1);
     let m = new THREE.MeshLambertMaterial({ color: 0xCCCCCC });
     super(g, m);
+    this.castShadow = true;
     this.scale.set(3.5,1,2);
 
     this._fallTime = 1000;

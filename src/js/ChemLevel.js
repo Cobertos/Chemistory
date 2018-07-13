@@ -6,6 +6,7 @@ export class ChemLevel extends SimObject(THREE.Mesh, PhysicsPart) {
     let g = new THREE.BoxBufferGeometry(1,1,1);
     let m = new THREE.MeshLambertMaterial({ color: 0xAAAAAA });
     super(g,m);
+    this.receiveShadow = true;
     this.scale.set(100,20,100);
   }
 
