@@ -4,6 +4,8 @@ import { SimScene } from "./BaseObject";
 import { ChemTable } from "./ChemTable";
 import { ChemLevel } from "./ChemLevel";
 import { ChemPlayer } from "./ChemPlayer";
+import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayMinimap";
+import "three-examples/loaders/SVGLoader.js"; //Loads to THREE.SVGLoader
 import { conversions } from "./utils";
 
 export class MainScene extends SimScene {
@@ -45,6 +47,18 @@ export class MainScene extends SimScene {
 
     let table2 = new ChemTable(new THREE.Vector3(0,0.5,-10));
     this.add(table2);
+
+    //SVG
+    SubwayMinimapCommon.loadSVG()
+      .then((svgGroup)=>{
+        let mm3D = new SubwayMinimap3D(player, svgGroup);
+        this.add(mm3D);
+        let mm2D = new SubwayMinimap2D(player, svgGroup);
+        mm2D.scale.set(0.03,0.03,0.03);
+        mm2D.position.set(1,4,-4);
+        player.add(mm2D);
+      });
+
 
     let grabbedItem;
     let lastMP = undefined;
