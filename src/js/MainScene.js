@@ -2,18 +2,15 @@ import * as THREE from "three";
 import $ from "jquery";
 import { SimScene } from "./BaseObject";
 import { ChemTable } from "./ChemTable";
-import { ChemLevel } from "./ChemLevel";
 import { ChemPlayer } from "./ChemPlayer";
 import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayMinimap";
 import "three-examples/loaders/SVGLoader.js"; //Loads to THREE.SVGLoader
 import { conversions } from "./utils";
+import { SimObjectLoader } from "./BaseObjectLoader.js";
 
 export class MainScene extends SimScene {
   constructor(r){
     super();
-    let floor = new ChemLevel();
-    floor.position.copy(new THREE.Vector3(0,-10,0));
-    this.add(floor);
 
     let player = this.player = new ChemPlayer();
     player.position.copy(new THREE.Vector3(0,0.5,0));
@@ -57,6 +54,21 @@ export class MainScene extends SimScene {
         mm2D.scale.set(0.03,0.03,0.03);
         mm2D.position.set(1,4,-4);
         player.add(mm2D);
+      });
+
+    //Level
+    let levelLoader = new SimObjectLoader();
+    levelLoader.load("res/chemistory-level")
+      .then((lvl)=>{
+        console.log(lvl);
+        //Must add manually because physics won't register unless
+        //added directly to the scene
+        lvl.children.slice().forEach((o)=>{
+          this.add(o);
+        });
+      })
+      .catch((err)=>{
+        console.error(err);
       });
 
 

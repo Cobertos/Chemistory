@@ -1,10 +1,8 @@
 import { World, Vec3 } from "oimo";
 
 //Feature TODO:
-//* Get velocities
 //* Listen for contacts
 //* Switching modes between static, dynamic, kinematic, etc?
-//* Making set actually work for dynamic
 
 const maxBodies = 1024;
 const dt = 1/30;
@@ -17,7 +15,7 @@ const world = new World({
     info: false,   // calculate statistic or not
 });
 const bodies = {}; //Holds all the Physics bodies tied to their THREEjs UUID
-const bodyData = new Float32Array( maxBodies * 8 );
+const bodyData = new Float32Array( maxBodies * 14 );
 
 let simulationInterval = undefined;
 
@@ -80,7 +78,7 @@ function step() {
     //Copy all new body data into buffer
     Object.keys(bodies).forEach((key, i)=>{
         let b = bodies[key];
-        let offset = i * 8;
+        let offset = i * 14;
         bodyData[offset] = +(!!b.sleeping || b.isStatic);
         if(!bodyData[offset]) {
             b.getPosition().toArray( bodyData, offset + 1 );

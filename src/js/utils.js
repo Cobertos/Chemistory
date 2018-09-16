@@ -26,6 +26,12 @@ export class PromiseProxy {
   }
 }
 
+export function _assert(condition, message="Assertion Error", error=Error) {
+  if(!condition) {
+    throw new error(message);
+  }
+}
+
 export const conversions = {
   eventToWindowPX : (ev)=>{
     return new THREE.Vector2(ev.clientX, ev.clientY);

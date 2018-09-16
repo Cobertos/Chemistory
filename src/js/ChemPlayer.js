@@ -18,14 +18,12 @@ export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
   }
 
   onPhysicsTick() {
-    console.log("ASD");
     //Fix the rotation of the player (TODO:honestly this should be a physics
     //engine constraint but Oimo doesnt support that out of the box)
     this.quaternion.copy(
         new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(0,0,1), 0));
     this.angularVelocity = new THREE.Vector3(0,0,0);
-    this.dirty(false, true, false, true); //Propogate to the physics engine
 
     //Calculate player movement
     let mov = new THREE.Vector3(0,0,0);
@@ -42,15 +40,33 @@ export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
       mov.add(new THREE.Vector3(-1,0,0));
     }
     mov.normalize();
+    mov.multiplyScalar(10);
 
     if(getInput("jump")) {
-      mov.add(new THREE.Vector3(0,3,0));
+      mov.add(new THREE.Vector3(0,5,0));
     }
-    if(mov.lengthSq() < 0.01) {
+    if(mov.lengthSq() < 0.01 && this.linearVelocity.lengthSq() < 0.01) {
       return;
+    }
+    else if(mov.lengthSq() < 0.01) {
+      //Apply "negative movement" to provide quicker stopping
+      mov = this.linearVelocity.clone()
+        .negate()
+        .multiplyScalar(0.5);
     }
 
     this.impulse(mov);
+
+    //Enforce a max velocity
+    let dirtyVel = false;
+    const maxVel = 6;
+    let maxVelPow2 = Math.pow(maxVel, 2);
+    if(this.linearVelocity.lengthSq() > maxVelPow2) {
+      dirtyVel = true;
+      this.linearVelocity.multiplyScalar(
+        maxVelPow2 / this.linearVelocity.lengthSq());
+    }
+    this.dirty(false, true, dirtyVel, true); //Propogate to the physics engine
   }
 
   get camera() {
@@ -61,6 +77,8 @@ export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
     return Object.assign(super.getPhysicsParams(), {
       type:"box",
       move: true,
+      friction: 2,
+      restitution: 0,
       neverSleep: true //Used to force onPhysicsTick to always run
     });
   }

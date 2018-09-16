@@ -36,7 +36,7 @@ export class OIMOScene {
         let bodyData = e.data.data;
         Object.keys(this._objects).forEach((key,i)=>{
             let o = this._objects[key];
-            let offset = i*8;
+            let offset = i*14;
             if(bodyData[offset] !== 1){ //not asleep || static
                 o.position.fromArray( bodyData, offset+1);
                 o.quaternion.fromArray( bodyData, offset+4 );

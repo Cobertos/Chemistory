@@ -14,6 +14,8 @@ export class SimScene {
 
   /**Add an object to the scene
    * @param {THREE.Object3D|SimObject} obj
+   * @todo this DOES NOT handle child objects that would require
+   * physics registration
    */
   add(obj) {
     this._objects.push(obj);
@@ -179,6 +181,7 @@ export class PhysicsPart {
    * that get passed to the physics object constructor. Inherit this and
    * Object.assign({}) your new properties to set the `type` (shape) and
    * `kinematic`, `neverSleep`, `move`, and any other OIMO parameters.
+   * See OIMOjsInternals.md for more info...
    * @returns {object} physic parameters object. Can have any SIMPLE js properties
    * b/c is has to cross a webworker barrier (no custom classes or functions, only plain
    * objects). THREE.Vector2,3,4 will be converted if pos, rot, vel, and angVel to arrays
@@ -201,6 +204,23 @@ export class PhysicsPart {
       rot: this.quaternion.toArray(),
       vel: this.linearVelocity.toArray(),
       angVel: this.angularVelocity.toArray()
+
+      //See OIMOjsInternals.md for more info
     };
+  }
+}
+
+/**Collects together debug portions of an object
+ */
+const isDebugBuild = true;
+export class DebugPart {
+  initializer() {
+
+  }
+
+  onConstructed() {
+    if(isDebugBuild && typeof this.onDebug === "function") {
+      this.onDebug();
+    }
   }
 }
