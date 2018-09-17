@@ -10,7 +10,9 @@ import { SimObject, PhysicsPart } from "./BaseObject";
  * physics parts
  */
 export class SimObjectLoader {
-  constructor() {}
+  constructor() {
+    this._idMap = {};
+  }
 
   /**Actually loads and parses the .mtl and .obj files
    * from the given URL
@@ -30,7 +32,6 @@ export class SimObjectLoader {
       });
     }).then((obj)=>{
       obj = obj.detail.loaderRootNode;
-      console.log(obj.children[0].children, obj.children[0].children.length);
       this.process(obj);
       return obj;
     }).catch(RSVP.rethrow);
@@ -80,17 +81,29 @@ export class SimObjectLoader {
    * @todo This would be way better with bsp ;_;
    */
   _processOne(obj){
-    let physics = !!obj.name.match(/PHYS=/) || (
-      obj.material && !!obj.material.name.match(/(CLIP|NODRAW|DEFAULT)/i));
-    console.log(obj.material && obj.material.name);
+    let name = obj.name;
+    let matName = obj.material && obj.material.name;
+
+    let physics = !!name.match(/PHYS=/) || 
+      !!matName.match(/(CLIP|NODRAW|DEFAULT)/i);
+    let id = name.match(/ID=([a-z0-9A-Z-]+)/);
+    console.log(id);
+    if(id) {
+      id = id[1];
+      if(!this._idMap[id]) {
+        this._idMap[id] = [];
+      }
+
+      this._idMap[id].push(obj);
+      console.log(this._idMap);
+    }
 
     if(physics) {
       //let moves = obj.name.match(/PHYS=(STATIC)?/);
       //moves = moves ? moves[1] !== "STATIC" : false;
-      let shape = obj.name.match(/PHYS_SHAPE=(BOX|SPHERE)/);
+      let shape = name.match(/PHYS_SHAPE=(BOX|SPHERE)/);
       shape = shape ? shape[1] : "BOX";
-      let invisible = !!obj.name.match(/INVIS=/) ||
-        !!obj.material.name.match(/NODRAW/i);
+      let invisible = !!name.match(/INVIS=/) || !!matName.match(/NODRAW/i);
 
       //Find all the parameters defined in the level
       let threeCls = invisible ? THREE.Group : Object.getPrototypeOf(obj).constructor;

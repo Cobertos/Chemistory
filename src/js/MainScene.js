@@ -66,6 +66,18 @@ export class MainScene extends SimScene {
         lvl.children.slice().forEach((o)=>{
           this.add(o);
         });
+        let spawns = levelLoader._idMap["SPAWN"];
+        console.log(spawns[0].getWorldPosition(new THREE.Vector3()));
+        spawns[0].geometry.computeBoundingBox();
+        let bbc = spawns[0].geometry.boundingBox.getCenter(new THREE.Vector3());
+        console.log(bbc);
+        player.position.copy(bbc);
+        console.log(player.position);
+        player.dirty(true, false, false, false);
+        console.log(player.getPhysicsParams());
+        spawns.forEach((o)=>{
+          o.parent.remove(o);
+        });
       })
       .catch((err)=>{
         console.error(err);
