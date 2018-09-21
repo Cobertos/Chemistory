@@ -1,2 +1,2 @@
-* Added player, camera, and movements
-* Added physics and rendering stats in build toolbar
+* Added level, spawning
+* Updated player movement to be much more responsive
