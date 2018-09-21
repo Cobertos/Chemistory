@@ -2,41 +2,6 @@ import * as THREE from "three";
 import { OIMOScene } from "./OIMOScene.js";
 import aggregation from "aggregation";
 
-/**Scene that encapsulates mutiple types of scenes
- */
-export class SimScene {
-  constructor() {
-    this._objects = [];
-
-    this._three = new THREE.Scene();
-    this._phys = new OIMOScene();
-  }
-
-  /**Add an object to the scene
-   * @param {THREE.Object3D|SimObject} obj
-   * @todo this DOES NOT handle child objects that would require
-   * physics registration
-   */
-  add(obj) {
-    this._objects.push(obj);
-    this._three.add(obj);
-    if(obj.supportsPhysics) {
-      obj._physScene = this._phys;
-      this._phys.add(obj.getPhysicsParams(), obj);
-    }
-  }
-
-  remove(obj) {
-    let idx = this._objects.indexOf(obj);
-    this._objects.splice(idx, 1);
-    this._three.remove(obj);
-    if(obj.supportsPhysics) {
-      this._phys.del(obj.getPhysicsParams());
-      obj._physScene = undefined;
-    }
-  }
-}
-
 /**Factory function for creating the base class for SimObjects of different
  * THREE.js classes
  * @param {function} THREE.Object3D constructor (like THREE.Mesh)
@@ -87,6 +52,45 @@ export function SimObject(threeCls, ...partClss) {
     _partHasFunction(func) {
       return typeof this[func] === "function"; //Should get mixed in from aggregation if someone has it
     }
+
+    /**Override for add
+     * @param {THREE.Object3D|SimObject} ...objs Objects
+     * @returns {undefined} Nothing
+     */
+    add(...objs) {
+      super.add(...objs);
+      if(this.scene) {
+        objs.forEach((obj)=>{
+          obj.traverse((obj)=>{
+            //Depth first by default, will
+            //include self
+            this.scene.register(obj);
+          });
+        });
+      }
+    }
+
+    /**Override for remove
+     * @param {THREE.Object3D|SimObject} ...objs Objects
+     * @returns {undefined} Nothing
+     */
+    remove(...objs) {
+      if(this.scene) {
+        objs.forEach((obj)=>{
+          obj.traverse((obj)=>{
+            //Depth first by default, will
+            //include self
+            //TODO: This is a ticking time bomb, unregistration
+            //happens in the same order as registration where we
+            //will unregister the root removed object first. This
+            //might cause some issue, it needs to unregister from
+            //the deepest child to the shallowest (breadth-first?))
+            this.scene.unregister(obj);
+          });
+        });
+      }
+      super.remove(...objs);
+    }
   }
 
 }
@@ -128,6 +132,13 @@ export class DefaultPart {
    * @todo This is bound to onBeforeRender, but it should be called regardless of whether
    * or not this object will render
    */
+
+  /**Gets the scene
+   * @prop scene
+   */
+  get scene() {
+    return this.parent && this.parent.scene;
+  }
 }
 
 /**Part that will add the object to the physics engine.
@@ -221,6 +232,42 @@ export class DebugPart {
   onConstructed() {
     if(isDebugBuild && typeof this.onDebug === "function") {
       this.onDebug();
+    }
+  }
+}
+
+
+/**Scene that encapsulates mutiple types of scenes
+ */
+export class SimScene extends SimObject(THREE.Scene) {
+  constructor() {
+    super();
+    this._phys = new OIMOScene();
+  }
+
+  get scene() {
+    return this;
+  }
+
+  /**SimObjects added to us will call the register function
+   * @param {THREE.Object3D|SimObject} obj The object to register
+   * with the subsystems. Should already be in the THREE scene
+   */
+  register(obj) {
+    if(obj.supportsPhysics) {
+      obj._physScene = this._phys;
+      this._phys.add(obj.getPhysicsParams(), obj);
+    }
+  }
+
+  /**SimObjects added to us will call the register function
+   * @param {THREE.Object3D|SimObject} obj The object to unregister
+   * with the subsystems. Should still be in the THREE scene
+   */
+  unregister(obj) {
+    if(obj.supportsPhysics) {
+      this._phys.del(obj.getPhysicsParams());
+      obj._physScene = undefined;
     }
   }
 }

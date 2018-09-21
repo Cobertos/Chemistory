@@ -94,7 +94,7 @@ export class MainScene extends SimScene {
 
       let rc = new THREE.Raycaster();
       rc.setFromCamera(mp, player.camera);
-      let hit = rc.intersectObjects(this._three.children);
+      let hit = rc.intersectObjects(this.children);
       hit.forEach((h)=>{
         if(typeof h.object.onRaycast === "function") {
           h.object.onRaycast(h, this);
@@ -157,6 +157,6 @@ export class MainScene extends SimScene {
   }
 
   render(renderer){
-    renderer.render(this._three, this.camera);
+    renderer.render(this, this.camera);
   }
 }
