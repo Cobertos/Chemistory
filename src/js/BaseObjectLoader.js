@@ -1,10 +1,12 @@
 import * as THREE from "three";
 import RSVP from "rsvp";
 const {Promise} = RSVP;
-import "three-examples/loaders/LoaderSupport.js"; //Loads to THREE.LoaderSupport
-import "three-examples/loaders/OBJLoader2.js"; //Loads to THREE.OBJLoader2
+import "./vendor/LoaderSupport.js"; //Loads to THREE.LoaderSupport
+import "./vendor/OBJLoader2.js"; //Loads to THREE.OBJLoader2
 import "three-examples/loaders/MTLLoader.js"; //Loads to THREE.MTLLoader
 import { SimObject, PhysicsPart } from "./BaseObject";
+const inNode = typeof window === "undefined";
+const isServer = inNode;
 
 /**Loads an obj/mtl object asynchronously along with it's partner
  * physics parts
@@ -20,21 +22,34 @@ export class SimObjectLoader {
    * extension
    * @returns {Promise} Promise that resolves to SimObject that 
    */
-  load(url) {
+  load(url, path) {
     let loader = new THREE.OBJLoader2();
-    return new Promise((resolve/*, reject*/)=> {
-      loader.loadMtl(url + ".mtl", undefined, resolve);
+    return new Promise((resolve, reject)=> {
+      if(!isServer) {
+        //url, content, onLoad, onProgress, onError, crossOrigin, materialOption
+        loader.loadMtl(url + ".mtl", undefined, resolve, undefined, reject);
+      }
+      else {
+        var fs = eval('require("fs")');
+        loader.loadMtl("", fs.readFileSync(path + ".mtl"), resolve, undefined, reject);
+      }
     }).then((mtlCreator)=>{
       return new Promise((resolve, reject)=>{
         loader.setMaterials(mtlCreator);
-        //url, onLoad, onProgress, onError, onMeshAlter, useAsync
-        loader.load(url + ".obj", resolve, null, reject, null, true );
+        if(!isServer) {
+          //url, onLoad, onProgress, onError, onMeshAlter, useAsync
+          loader.load(url + ".obj", resolve, null, reject, null, true );
+        }
+        else {
+          var fs = eval('require("fs")');
+          loader.parseAsync(fs.readFileSync(path + ".obj"), resolve);
+        }
       });
     }).then((obj)=>{
       obj = obj.detail.loaderRootNode;
       this.process(obj);
       return obj;
-    }).catch(RSVP.rethrow);
+    });//.catch(RSVP.rethrow);
   }
 
   /**Takes a loaded THREE.js object with special names that determine extra

@@ -1,4 +1,5 @@
 import { World, Vec3 } from "oimo";
+const _self = typeof self !== "undefined" ? self : eval('require("worker_threads")').parentPort;
 
 //Feature TODO:
 //* Listen for contacts
@@ -19,15 +20,16 @@ const bodyData = new Float32Array( maxBodies * 14 );
 
 let simulationInterval = undefined;
 
-self.onmessage = function(e) {
-    if(e.data.command === "add") {
+_self.onmessage = function(e) {
+    let msg = e.data || e; //Browser || NodeJS event
+    if(msg.command === "add") {
         //world.add({size:[200, 20, 200], pos:[0,-10,0]}); //Ground plan
         //world.add({type:'sphere', size:[0.25], pos:[x,(0.5*i)+0.5,z], move:true});
         //world.add({type:'box', size:[0.5,0.5,0.5], pos:[x,((0.5*i)+0.5),z], move:true});
-        bodies[e.data.id] = world.add(e.data.data);
+        bodies[msg.id] = world.add(msg.data);
     }
-    else if(e.data.command === "set") {
-        let obj = e.data.obj;
+    else if(msg.command === "set") {
+        let obj = msg.obj;
         let b = bodies[obj.id];
         if(b.isStatic && !b.isKinematic) {
             throw new Error("Use o.move=true and o.kinematic=true for static movables!");
@@ -36,35 +38,35 @@ self.onmessage = function(e) {
         //Set position and optionally quaternion, don't use setPosition or setQuaternion
         //because it sets linear and angular velocity to really bizarre values and
         //will also cause any applyImpulses to fail due to it zeroing out these values first
-        if(e.data.setPos) {
+        if(msg.setPos) {
             b.position.fromArray(obj.pos);
         }
-        if(e.data.setRot) {
+        if(msg.setRot) {
             b.orientation.fromArray(obj.rot);
         }
-        if(e.data.setVel) {
+        if(msg.setVel) {
             b.linearVelocity.fromArray(obj.vel);
         }
-        if(e.data.setAngVel) {
+        if(msg.setAngVel) {
             b.angularVelocity.fromArray(obj.angVel);
         }
     }
-    else if(e.data.command === "del") {
-        bodies[e.data.id].remove();
-        delete bodies[e.data.id];
+    else if(msg.command === "del") {
+        bodies[msg.id].remove();
+        delete bodies[msg.id];
     }
-    else if(e.data.command === "impulse") {
-        bodies[e.data.id].applyImpulse(
-            new Vec3().fromArray(e.data.pos),
-            new Vec3().fromArray(e.data.force));
+    else if(msg.command === "impulse") {
+        bodies[msg.id].applyImpulse(
+            new Vec3().fromArray(msg.pos),
+            new Vec3().fromArray(msg.force));
     }
-    else if(e.data.command === "loadbeat") {
-        self.postMessage({ loadbeat: true });
+    else if(msg.command === "loadbeat") {
+        _self.postMessage({ loadbeat: true });
     }
-    else if(e.data.command === "play" && simulationInterval === undefined) {
+    else if(msg.command === "play" && simulationInterval === undefined) {
         simulationInterval = setInterval( step, dt*1000 );
     }
-    else if(e.data.command === "pause" && simulationInterval !== undefined) {
+    else if(msg.command === "pause" && simulationInterval !== undefined) {
         clearInterval(simulationInterval);
         simulationInterval = undefined;
     }
@@ -98,8 +100,8 @@ function step() {
     lastStepTime = now;
 
     //Post message with data back
-    self.postMessage({
+    _self.postMessage({
         fps,
-        data:bodyData
+        simData:bodyData
     });
 }

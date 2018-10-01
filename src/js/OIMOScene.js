@@ -1,4 +1,10 @@
-import OIMOWorkerCls from "./OIMOWorker";
+let _worker;
+try {
+    _worker = Worker;
+}
+catch(err) {
+    _worker = eval('require("worker_threads")').Worker;
+}
 import { PromiseProxy } from "./utils";
 
 /**Encapsulates an OIMOWorker and all the object communications with it
@@ -8,7 +14,7 @@ export class OIMOScene {
     constructor() {
         this._objects = {};
 
-        this._worker = new OIMOWorkerCls();
+        this._worker = new _worker("./dist/server/OimoWorker.js");
         this._worker.postMessage = this._worker.webkitPostMessage || this._worker.postMessage;
         this._worker.onmessage = this.onMessage.bind(this);
 
@@ -23,17 +29,18 @@ export class OIMOScene {
     }
 
     onMessage(e) {
-        if(e.data.loadbeat) {
+        let msg = e.data || e; //Browser || NodeJS
+        if(msg.loadbeat) {
             this._workerLoaded = true;
             this._workerPromise.externalResolve();
             clearInterval(this._loadInterval);
             return;
         }
 
-        this._lastFPS = e.data.fps;
+        this._lastFPS = msg.fps;
 
         // Get fresh data from the worker
-        let bodyData = e.data.data;
+        let bodyData = msg.simData;
         Object.keys(this._objects).forEach((key,i)=>{
             let o = this._objects[key];
             let offset = i*14;

@@ -1,1 +1,8 @@
 //Dummy file, replaced in build with json object
+// {
+//     "branch": "the branch name we're on",
+//     "commit": "commit hash",
+//     "time": "build time in millis",
+//     "description": "Description for frontend, DESCRIPTION.MD",
+//     "changelog": "Changelog CHANGELOG.MD"
+// }

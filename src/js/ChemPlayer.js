@@ -2,19 +2,17 @@ import * as THREE from "three";
 import { SimObject, PhysicsPart } from "./BaseObject";
 import { getInput } from "./input";
 
-const playerFOV = 75;
-
 export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
-  constructor() {
+  constructor(cam) {
     let g = new THREE.CylinderBufferGeometry(0.7,1,1,10);
     let m = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
     super(g, m);
     this.castShadow = true;
     this.scale.set(1,1.7,1);
-    let c = this._camera = new THREE.PerspectiveCamera(playerFOV, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.add(c);
-    c.position.set(0,5,-8.3);
-    c.lookAt(this.position);
+    this._camera = cam;
+    this.add(cam);
+    cam.position.set(0,5,-8.3);
+    cam.lookAt(this.position);
   }
 
   onPhysicsTick() {

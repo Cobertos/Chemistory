@@ -47,3 +47,18 @@ export const conversions = {
     return v2;
   }
 };
+
+/**Correlary to JQuery's $.parseHTML for plain js
+ * @param {string} The HTML to convert to elements
+ * @returns {DocumentFragment} A document fragment that can be
+ * added directly to DOM with appendChild
+ */
+export function parseHTML(str) {
+  let parser = new DOMParser(),
+  doc = parser.parseFromString(str, "text/html"),
+  documentFragment = document.createDocumentFragment();
+  Array.from(doc.body.children).forEach((el)=>{
+    documentFragment.appendChild(el);
+  });
+  return documentFragment;
+}

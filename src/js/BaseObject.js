@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OIMOScene } from "./OIMOScene.js";
+import { WSScene } from "./WSScene.js";
 import aggregation from "aggregation";
 
 /**Factory function for creating the base class for SimObjects of different
@@ -11,6 +12,8 @@ import aggregation from "aggregation";
  * `class XXX extends SimObject(THREE.Mesh, PhysicsPart) {}`
  */
 export function SimObject(threeCls, ...partClss) {
+  partClss = [DefaultPart, ...partClss];
+
   /**THREE.Object3D inherittor + any additionally inheritted parts passed from
    * the called
    * @extends THREE.Object3D
@@ -21,36 +24,58 @@ export function SimObject(threeCls, ...partClss) {
       setTimeout(this.finishConstruction.bind(this)); //The next javascript frame, call this
     }
 
+    /**You must call this after the class is defined if one of your
+     * mixed in parts has a onDefined callback (like the NetworkPart)
+     */
+    static finishDefinition() {
+      if(this._partHasFunction(this, "onDefined")) {
+        this._partApply(this, "onDefined");
+      }
+    }
+
     /**You must call this after construction finishes to properly setup
      * things
      * @todo Add an assert if this isn't called
      * @todo Is the setTimeout above enough?
+     * @todo Remove duplication of _partClss functionality
+     * and call finishDefinition on event SimObject (refactor)
      */
     finishConstruction() {
-      this._partClss = [DefaultPart, ...partClss];
       if(this._partHasFunction("onConstructed")) {
         this._partApply("onConstructed");
       }
     }
 
-    /**Calls function.apply() for every part that has func
+    /**Calls function.apply() for every part that has func.
+     * Only necessary when multiple parts define the same
+     * function where they would otherwise overwrite each other
+     * in the aggregation() process
+     * @param {object} _this The object to use as _this
+     * (as it could be on the class instance, not
+     * the actual class that we want to call this on)
      * @param {string} func The function name to call
      * @param {any[]} args The arguments to call with
      */
-    _partApply(func, args) {
-      this._partClss.forEach((partCls)=>{
+    static _partApply(_this, func, args) {
+      partClss.forEach((partCls)=>{
         if(func in partCls.prototype) {
-          partCls.prototype[func].apply(this, args);
+          partCls.prototype[func].apply(_this, args);
         }
       });
+    }
+    _partApply(func, args) {
+      _SimObject._partApply(this, func, args);
     }
 
     /**Does any part on us have the given function name
      * @param {string} func The function name to check for
      * @returns {boolean} Whether the function exists or not to call
      */
-    _partHasFunction(func) {
-      return typeof this[func] === "function"; //Should get mixed in from aggregation if someone has it
+    static _partHasFunction(func) {
+      return typeof this.prototype[func] === "function"; //Should get mixed in from aggregation if someone has it
+    }
+    _partHasFunction(func, args) {
+      _SimObject._partApply(this, func, args);
     }
 
     /**Override for add
@@ -92,7 +117,6 @@ export function SimObject(threeCls, ...partClss) {
       super.remove(...objs);
     }
   }
-
 }
 
 /**Base class for all parts. NOTE: Currently parts will work even without this base class
@@ -236,13 +260,66 @@ export class DebugPart {
   }
 }
 
+export class NetworkPart {
+  getNetworkParams() {
+    return {};
+  }
+
+  static onDefined(){
+    //TODO: RPCs
+    //Post-Process all the functions that need to send
+    //RPCs instead of actually functioning
+    /*Object.keys(this.prototype).forEach((name)=>{
+      let val = this.prototype[name];
+      if(typeof val !== "function") {
+        return false; //Continue
+      }
+
+      let match = name.match("^(cl|sv)_(.+)");
+      if(!match) {
+        return false;
+      }
+
+      let isServerFunc = match[1] === "sv";
+      let rpcName = match[2];
+      let _func = val;
+      let func;
+      if(isServerFunc){
+        func = (...args)=>{
+          if(this._wsScene.isServer) {
+            _func(...args);
+          }
+          else {
+            //Send it as an RPC to the server
+            this._wsScene.rpc(rpcName, ...args);
+          }
+        }
+      }
+      else {
+        func = (...args)=>{
+          if(this._wsScene.isServer) {
+            //Send an RPC to the client identified by the ID
+            //let clientID = args[0];
+            this._wsScene.rpc(rpcName, ...args);
+          }
+          else {
+            _func(...args);
+          }
+        };
+      }
+      this.prototype[name] = func;
+    });*/
+  }
+}
+
 
 /**Scene that encapsulates mutiple types of scenes
  */
 export class SimScene extends SimObject(THREE.Scene) {
-  constructor() {
+  constructor(url) {
     super();
     this._phys = new OIMOScene();
+    this._net = new WSScene(this, url);
   }
 
   get scene() {
@@ -254,6 +331,9 @@ export class SimScene extends SimObject(THREE.Scene) {
    * with the subsystems. Should already be in the THREE scene
    */
   register(obj) {
+    if(obj.supportsNetworking) {
+      obj._netScene = this._net;
+    }
     if(obj.supportsPhysics) {
       obj._physScene = this._phys;
       this._phys.add(obj.getPhysicsParams(), obj);
@@ -265,6 +345,9 @@ export class SimScene extends SimObject(THREE.Scene) {
    * with the subsystems. Should still be in the THREE scene
    */
   unregister(obj) {
+    if(obj.supportsNetworking) {
+      this._netScene = undefined
+    }
     if(obj.supportsPhysics) {
       this._phys.del(obj.getPhysicsParams());
       obj._physScene = undefined;

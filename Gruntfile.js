@@ -1,8 +1,10 @@
+var webpack = require("webpack");
 var path = require("path");
-var NodeGit = require("NodeGit");
+var git = require('isomorphic-git');
+var fs = require("fs");
+git.plugins.set('fs', fs);
 var RSVP = require("rsvp");
 RSVP.on("error", (err)=>console.error("Uncaught error: ", err));
-var fs = require("fs");
 var readFilePromise = (file, encoding)=>{
 	return new RSVP.Promise((resolve, reject)=>{
 		fs.readFile(file, encoding, (err, data)=>{
@@ -19,12 +21,11 @@ var readFilePromise = (file, encoding)=>{
 //Global build info, fetched asynchronously (there's a task that waits for it)
 var substituteLoaderOptions = {};
 var getLatestBuildInfo = ()=>{
-	var repo = NodeGit.Repository.open(".");
+	var ref = git.resolveRef({dir: ".", ref: 'HEAD', depth: 2});
 	var buildInfoPromise = RSVP.hash({
-		branch: repo.then((repo)=>repo.getCurrentBranch())
-					.then((ref)=>ref.name()),
-		commit: repo.then((repo)=>repo.getHeadCommit())
-					.then((commit)=>commit.id().tostrS().slice(-8)),
+		branch: git.currentBranch({dir: "."}),
+		commit: git.resolveRef({dir: ".", ref: "HEAD"})
+				.then((id)=>id.slice(-8)),
 		description: readFilePromise("DESCRIPTION.md", "utf8"),
 		changelog: readFilePromise("CHANGELOG.md", "utf8"),
 		time: Date.now()
@@ -35,59 +36,88 @@ var getLatestBuildInfo = ()=>{
 	return buildInfoPromise;
 };
 
-module.exports = function(grunt) {
+const SRC_DIR = "src"; //Source directory
+const DIST_DIR = "dist"; //Distribution directory
+const baseWebpack = {
+	mode : "development",
+	context : path.resolve(__dirname, "./" + SRC_DIR + "/js"),
+	entry : {
+		main: "./main.js",
+		OimoWorker: "./OIMOWorker.js"
+	},
+	output : {
+		path : path.resolve(__dirname, DIST_DIR + "/js"),
+		filename : "[name].js",
+		library : "burstGame",
+		libraryTarget : "umd"
+	},
+	resolve: {
+		alias : {
+			"three-examples" : "three/examples/js"
+		}
+	},
+	module : {
+		rules : [{
+			test: /buildInfo\.json$/,
+			use: {
+				loader: path.resolve(__dirname, 'substitute-loader.js'),
+				options: substituteLoaderOptions
+			}
+		}, {
+			test : /\.html$/,
+			loader : "html-loader"
+		}, {
+			test : /\.(js|json)$/,
+			exclude : /(node_modules|bower_components|LoaderSupport|OBJLoader2)/,
+			loader: 'babel-loader',
+			query: {
+				presets: ['es2015'],
+				plugins: ['transform-runtime'],
+				cacheDirectory : true
+			}
+		}, {
+			test : /(three[\\\/]examples[\\\/]js|(OBJLoader2|LoaderSupport)\.js$)/,
+			loader : "imports-loader?THREE=three"
+		}]
+	},
+	devtool: "source-map",
+	plugins: [
+		new webpack.IgnorePlugin(/worker_threads/)
+	]
+}
 
-	var SRC_DIR = "src"; //Source directory
-	var DIST_DIR = "dist"; //Distribution directory
+module.exports = function(grunt) {
 
 	grunt.initConfig({
 		webpack: {
 			dist : {
-				mode : "development",
-				context : path.resolve(__dirname, "./" + SRC_DIR + "/js"),
-				entry : "./main.js",
-				output : {
-					path : path.resolve(__dirname, DIST_DIR + "/js"),
-					filename : "main.js",
-					library : "burstGame",
-					libraryTarget : "umd"
+				...baseWebpack
+			},
+			distServer : {
+				...baseWebpack,
+				entry: {
+					...baseWebpack.entry,
+					server: baseWebpack.entry.main
 				},
-				resolve: {
-					alias : {
-						"three-examples" : "three/examples/js"
-					}
+				output : {
+					...baseWebpack.output,
+					path: path.resolve(__dirname, DIST_DIR, "server"),
+					libraryTarget: "var",
 				},
 				module : {
-					rules : [{
-						test: /buildInfo\.json$/,
-						use: {
-							loader: path.resolve(__dirname, 'substitute-loader.js'),
-							options: substituteLoaderOptions
+					...baseWebpack.module,
+					rules : [ ...baseWebpack.module.rules, {
+						test : /three\.module\.js$/,
+						use : {
+							loader: path.resolve(__dirname, 'require-loader.js'),
+							options: {
+								requires : {
+									"XMLHttpRequest":  ["xhr2"]
+								}
+							}
 						}
-					}, {
-						test : /\.html$/,
-						loader : "html-loader"
-					}, {
-						test : /\.(js|json)$/,
-						exclude : /(node_modules|bower_components)/,
-						loader: 'babel-loader',
-						query: {
-							presets: ['es2015'],
-							plugins: ['transform-runtime'],
-							cacheDirectory : true
-						}
-					}, {
-						test : /three[\\\/]examples[\\\/]js/,
-						loader : "imports-loader?THREE=three"
-					}, {
-						test: /OIMOWorker\.js$/,
-						use: {
-							loader: 'worker-loader',
-							options: { publicPath: '/js/'}
-						},
 					}]
-				},
-				devtool: "source-map"
+				}
 			}
 		},
 		uglify: {
@@ -210,6 +240,7 @@ module.exports = function(grunt) {
 			});
 	});
 	grunt.registerTask('buildJS', ["updateBuildInfo", "webpack:dist"]);
+	grunt.registerTask('buildJSServer', ["updateBuildInfo", "webpack:distServer"]);
 	grunt.registerTask('buildCSS', ["sass:dist"]);
 	grunt.registerTask('buildOther', ["sync:dist", "sync:js"]);
 

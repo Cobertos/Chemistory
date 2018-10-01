@@ -7,12 +7,17 @@ import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayM
 import "three-examples/loaders/SVGLoader.js"; //Loads to THREE.SVGLoader
 import { conversions } from "./utils";
 import { SimObjectLoader } from "./BaseObjectLoader.js";
+const playerFOV = 75;
+const inNode = typeof window === "undefined";
+const isServer = inNode;
 
 export class MainScene extends SimScene {
-  constructor(r){
-    super();
+  constructor(url, r){
+    super(url);
 
-    let player = this.player = new ChemPlayer();
+    let aspect = typeof window === "undefined" ? 16/9 :  window.innerWidth / window.innerHeight;
+    let cam = new THREE.PerspectiveCamera(playerFOV, aspect, 0.1, 1000);
+    let player = this.player = new ChemPlayer(cam);
     player.position.copy(new THREE.Vector3(0,0.5,0));
     this.add(player);
 
@@ -58,7 +63,7 @@ export class MainScene extends SimScene {
 
     //Level
     let levelLoader = new SimObjectLoader();
-    levelLoader.load("res/chemistory-level")
+    levelLoader.load("res/chemistory-level", "./dist/res/chemistory-level")
       .then((lvl)=>{
         console.log(lvl);
         //Must add manually because physics won't register unless
@@ -84,72 +89,74 @@ export class MainScene extends SimScene {
       });
 
 
-    let grabbedItem;
-    let lastMP = undefined;
-    $(r.domElement).on("mousedown", (e)=>{
-      let $canvas = $(e.target);
-      let mp = conversions.viewportPXToviewportNDC($canvas, 
-        conversions.windowPXToViewportPX($canvas, 
-        conversions.eventToWindowPX(e)));
+    if(!inNode) {
+      let grabbedItem;
+      let lastMP = undefined;
+      $(r.domElement).on("mousedown", (e)=>{
+        let $canvas = $(e.target);
+        let mp = conversions.viewportPXToviewportNDC($canvas, 
+          conversions.windowPXToViewportPX($canvas, 
+          conversions.eventToWindowPX(e)));
 
-      let rc = new THREE.Raycaster();
-      rc.setFromCamera(mp, player.camera);
-      let hit = rc.intersectObjects(this.children);
-      hit.forEach((h)=>{
-        if(typeof h.object.onRaycast === "function") {
-          h.object.onRaycast(h, this);
-        }
+        let rc = new THREE.Raycaster();
+        rc.setFromCamera(mp, player.camera);
+        let hit = rc.intersectObjects(this.children);
+        hit.forEach((h)=>{
+          if(typeof h.object.onRaycast === "function") {
+            h.object.onRaycast(h, this);
+          }
+        });
+        lastMP = mp;
       });
-      lastMP = mp;
-    });
-    $(r.domElement).on("mousemove", (e)=>{
-      if(!grabbedItem) {
-        return;
-      }
+      $(r.domElement).on("mousemove", (e)=>{
+        if(!grabbedItem) {
+          return;
+        }
 
-      let $canvas = $(e.target);
-      let mp = conversions.viewportPXToviewportNDC($canvas, 
-        conversions.windowPXToViewportPX($canvas, 
-        conversions.eventToWindowPX(e)));
+        let $canvas = $(e.target);
+        let mp = conversions.viewportPXToviewportNDC($canvas, 
+          conversions.windowPXToViewportPX($canvas, 
+          conversions.eventToWindowPX(e)));
 
-      //Get drag coordinate system
-      let cy = THREE.Object3D.DefaultUp.clone(); //Maybe make camera up?
-      let cz = player.camera.getWorldDirection(new THREE.Vector3(0,0,0));
-      let cx = cz.clone().cross(cy).normalize();
+        //Get drag coordinate system
+        let cy = THREE.Object3D.DefaultUp.clone(); //Maybe make camera up?
+        let cz = player.camera.getWorldDirection(new THREE.Vector3(0,0,0));
+        let cx = cz.clone().cross(cy).normalize();
 
-      //Find the distance of drag in each direction
-      let rc = new THREE.Raycaster();
-      rc.setFromCamera(mp, player.camera);
-      //let r = rc.ray; //Get internal .origin and .direction
-      let rc2 = new THREE.Raycaster();
-      rc2.setFromCamera(lastMP, player.camera);
-      //let r2 = rc2.ray;
+        //Find the distance of drag in each direction
+        let rc = new THREE.Raycaster();
+        rc.setFromCamera(mp, player.camera);
+        //let r = rc.ray; //Get internal .origin and .direction
+        let rc2 = new THREE.Raycaster();
+        rc2.setFromCamera(lastMP, player.camera);
+        //let r2 = rc2.ray;
 
-      let mouseDelta = mp.clone().sub(lastMP);
-      let dist = grabbedItem.position.clone()
-        .sub(player.camera.position);
-      let projDist = dist.clone().projectOnVector(cz);
-      let fov = player.camera.fov * Math.PI/180;
-      let fov_2 = fov/2;
-      let yViewportWidthAtDist = Math.tan(fov_2) * projDist.length() * 2;
-      let xViewportWidthAtDist = (player.camera.aspect) * yViewportWidthAtDist;
-      //NDC to scaled NDC
-      mouseDelta.multiply(new THREE.Vector2(xViewportWidthAtDist/2,yViewportWidthAtDist/2));
-      let itemDelta = cx.clone().multiplyScalar(mouseDelta.x)
-        .add(cy.clone().multiplyScalar(mouseDelta.y));
+        let mouseDelta = mp.clone().sub(lastMP);
+        let dist = grabbedItem.position.clone()
+          .sub(player.camera.position);
+        let projDist = dist.clone().projectOnVector(cz);
+        let fov = player.camera.fov * Math.PI/180;
+        let fov_2 = fov/2;
+        let yViewportWidthAtDist = Math.tan(fov_2) * projDist.length() * 2;
+        let xViewportWidthAtDist = (player.camera.aspect) * yViewportWidthAtDist;
+        //NDC to scaled NDC
+        mouseDelta.multiply(new THREE.Vector2(xViewportWidthAtDist/2,yViewportWidthAtDist/2));
+        let itemDelta = cx.clone().multiplyScalar(mouseDelta.x)
+          .add(cy.clone().multiplyScalar(mouseDelta.y));
 
-      grabbedItem.position.add(itemDelta);
-      grabbedItem.dirty();
-      lastMP = mp.clone();
-    });
-    $(r.domElement).on("mouseup", ()=>{
-      if(!grabbedItem) {
-        return;
-      }
-      grabbedItem.material.color.set(new THREE.Color(1,0,0));
-      lastMP = undefined;
-      grabbedItem = undefined;
-    });
+        grabbedItem.position.add(itemDelta);
+        grabbedItem.dirty();
+        lastMP = mp.clone();
+      });
+      $(r.domElement).on("mouseup", ()=>{
+        if(!grabbedItem) {
+          return;
+        }
+        grabbedItem.material.color.set(new THREE.Color(1,0,0));
+        lastMP = undefined;
+        grabbedItem = undefined;
+      });
+    }
   }
 
   get camera(){
