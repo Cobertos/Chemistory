@@ -69,12 +69,27 @@ const baseWebpack = {
 		}, {
 			test : /\.(js|json)$/,
 			exclude : /(node_modules|bower_components|LoaderSupport|OBJLoader2)/,
-			loader: 'babel-loader',
-			query: {
-				presets: ['es2015'],
-				plugins: ['transform-runtime'],
-				cacheDirectory : true
-			}
+			use: [{
+				loader: 'babel-loader',
+				options: {
+					presets: [
+						['env', {
+							"targets": {
+								"browsers": [
+									"last 2 versions",
+									"IE >= 9"
+								]
+							}
+						}],
+					],
+					plugins: [
+						['transform-runtime', {
+							"regenerator": true,
+						}]
+					],
+					cacheDirectory : true
+				}
+			}]
 		}, {
 			test : /(three[\\\/]examples[\\\/]js|(OBJLoader2|LoaderSupport)\.js$)/,
 			loader : "imports-loader?THREE=three"
@@ -91,7 +106,23 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		webpack: {
 			dist : {
-				...baseWebpack
+				...baseWebpack,
+				module : {
+					...baseWebpack.module,
+					rules : [
+						...baseWebpack.module.rules, {
+							test : /\.(js|json)$/,
+							exclude : /(node_modules|bower_components|LoaderSupport|OBJLoader2)/,
+							use: {
+								loader: 'ifdef-loader',
+								options: {
+									BROWSER: true,
+									NODEJS: false
+								}
+							}
+						} 
+					]
+				}
 			},
 			distServer : {
 				...baseWebpack,
@@ -107,16 +138,17 @@ module.exports = function(grunt) {
 				module : {
 					...baseWebpack.module,
 					rules : [ ...baseWebpack.module.rules, {
-						test : /three\.module\.js$/,
-						use : {
-							loader: path.resolve(__dirname, 'require-loader.js'),
-							options: {
-								requires : {
-									"XMLHttpRequest":  ["xhr2"]
+						test : /\.(js|json)$/,
+							exclude : /(node_modules|bower_components|LoaderSupport|OBJLoader2)/,
+							use: {
+								loader: 'ifdef-loader',
+								options: {
+									NODEJS: true,
+									BROWSER: false
 								}
 							}
 						}
-					}]
+					]
 				}
 			}
 		},
@@ -239,7 +271,8 @@ module.exports = function(grunt) {
 				setTimeout(()=>{throw err;}, 0);
 			});
 	});
-	grunt.registerTask('buildJS', ["updateBuildInfo", "webpack:dist"]);
+	grunt.registerTask('buildJS', ["updateBuildInfo", "webpack:dist", "webpack:distServer"]);
+	grunt.registerTask('buildJSClient', ["updateBuildInfo", "webpack:dist"]);
 	grunt.registerTask('buildJSServer', ["updateBuildInfo", "webpack:distServer"]);
 	grunt.registerTask('buildCSS', ["sass:dist"]);
 	grunt.registerTask('buildOther', ["sync:dist", "sync:js"]);

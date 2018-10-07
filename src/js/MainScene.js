@@ -8,14 +8,16 @@ import "three-examples/loaders/SVGLoader.js"; //Loads to THREE.SVGLoader
 import { conversions } from "./utils";
 import { SimObjectLoader } from "./BaseObjectLoader.js";
 const playerFOV = 75;
-const inNode = typeof window === "undefined";
-const isServer = inNode;
 
 export class MainScene extends SimScene {
   constructor(url, r){
     super(url);
 
-    let aspect = typeof window === "undefined" ? 16/9 :  window.innerWidth / window.innerHeight;
+    /// #if BROWSER
+      const aspect = window.innerWidth / window.innerHeight;
+    /// #else
+      const aspect = 16/9;
+    /// #endif
     let cam = new THREE.PerspectiveCamera(playerFOV, aspect, 0.1, 1000);
     let player = this.player = new ChemPlayer(cam);
     player.position.copy(new THREE.Vector3(0,0.5,0));
@@ -51,6 +53,7 @@ export class MainScene extends SimScene {
     this.add(table2);
 
     //SVG
+    /// #if BROWSER
     SubwayMinimapCommon.loadSVG()
       .then((svgGroup)=>{
         let mm3D = new SubwayMinimap3D(player, svgGroup);
@@ -60,6 +63,7 @@ export class MainScene extends SimScene {
         mm2D.position.set(1,4,-4);
         player.add(mm2D);
       });
+    /// #endif
 
     //Level
     let levelLoader = new SimObjectLoader();
@@ -89,7 +93,7 @@ export class MainScene extends SimScene {
       });
 
 
-    if(!inNode) {
+    /// #if BROWSER
       let grabbedItem;
       let lastMP = undefined;
       $(r.domElement).on("mousedown", (e)=>{
@@ -156,7 +160,7 @@ export class MainScene extends SimScene {
         lastMP = undefined;
         grabbedItem = undefined;
       });
-    }
+    /// #endif
   }
 
   get camera(){

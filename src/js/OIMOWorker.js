@@ -1,5 +1,7 @@
 import { World, Vec3 } from "oimo";
-const _self = typeof self !== "undefined" ? self : eval('require("worker_threads")').parentPort;
+/// #if NODEJS
+const self = eval('require')("worker_threads").parentPort;
+/// #endif
 
 //Feature TODO:
 //* Listen for contacts
@@ -20,8 +22,10 @@ const bodyData = new Float32Array( maxBodies * 14 );
 
 let simulationInterval = undefined;
 
-_self.onmessage = function(e) {
-    let msg = e.data || e; //Browser || NodeJS event
+self.onmessage = function(msg) {
+    /// #if BROWSER
+    msg = msg.data; //Must unpack from event object in the browser
+    /// #endif
     if(msg.command === "add") {
         //world.add({size:[200, 20, 200], pos:[0,-10,0]}); //Ground plan
         //world.add({type:'sphere', size:[0.25], pos:[x,(0.5*i)+0.5,z], move:true});
@@ -61,7 +65,7 @@ _self.onmessage = function(e) {
             new Vec3().fromArray(msg.force));
     }
     else if(msg.command === "loadbeat") {
-        _self.postMessage({ loadbeat: true });
+        self.postMessage({ loadbeat: true });
     }
     else if(msg.command === "play" && simulationInterval === undefined) {
         simulationInterval = setInterval( step, dt*1000 );
@@ -100,8 +104,8 @@ function step() {
     lastStepTime = now;
 
     //Post message with data back
-    _self.postMessage({
+    self.postMessage({
         fps,
-        simData:bodyData
+        data:bodyData
     });
 }

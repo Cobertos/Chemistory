@@ -6,9 +6,18 @@ import { BuildInfoWidget } from "./BuildInfoWidget";
 import { ConnectionWidget } from "./ConnectionWidget";
 import { MainScene } from "./MainScene";
 import buildInfo from "./buildInfo.json";
-const inNode = typeof window === "undefined";
-const isServer = inNode;
 
+console.log(`== CHEMISTORY ==
+${buildInfo.branch} - ${buildInfo.commit}
+Built ${moment(buildInfo.time).fromNow()}
+      
+New in this version:
+${buildInfo.changelog}
+`);
+
+/// #if BROWSER
+console.log("== CLIENT ==");
+console.log("You can access the scene on window.s");
 const getStats = (s=new Stats())=>{
   $(s.dom).css({
     "position": "static",
@@ -17,78 +26,58 @@ const getStats = (s=new Stats())=>{
   return s;
 }
 
-//Connection utilities for client
-if(!isServer) {
-  $(()=>{
-    //Build Information
-    let bi = new BuildInfoWidget();
-    $("body").append(bi.$());
+$(()=>{
+  //Build Information
+  let bi = new BuildInfoWidget();
+  $("body").append(bi.$());
 
-    let conn = new ConnectionWidget();
-    document.body.appendChild(conn.dom);
+  let conn = new ConnectionWidget();
+  document.body.appendChild(conn.dom);
 
-    conn.addListener("startServer", ()=>{
-      console.error("UNIMPLEMENTED IN BROWSER, CANT BE DONE WITHOUT RAW SOCKETS");
-      //startGame();
-    });
-    conn.addListener("connectTo", ()=>{
-      startBrowserClient(bi, conn.url);
-    });
+  conn.addListener("startServer", ()=>{
+    console.error("UNIMPLEMENTED IN BROWSER, CANT BE DONE WITHOUT RAW SOCKETS");
+    //startGame();
   });
-}
-else {
-  console.log(`== CHEMISTORY SERVER ==
-${buildInfo.branch} - ${buildInfo.commit}
-Built ${moment(buildInfo.time).fromNow()}
-      
-New in this version:
-${buildInfo.changelog}
-`);
-  startNodeServer();
-}
+  conn.addListener("connectTo", async()=>{
+    const stats = getStats();
+    bi.$body().append(stats.dom);
 
-function startNodeServer() {
-  //Create the server scene
-  const s = new MainScene();
-  s._phys.onLoad().then(()=>{
-    console.log("Loaded Physcis");
-    s._net.onLoad().then(()=>{
-      console.log("Loaded Networking");
+    const stats2 = getStats();
+    const physPanel = stats2.addPanel(new Stats.Panel('OimoFPS', '#80f', '#102'));
+    stats2.showPanel(3);
+    bi.$body().append(stats2.dom);
 
-      console.log("Starting Physics Simulation");
-      s._phys.play();
+    const r = new THREE.WebGLRenderer({
+      canvas: $("#game")[0]
     });
-  });
-}
+    r.setSize( window.innerWidth, window.innerHeight );
 
-function startBrowserClient(bi, connectToUrl) {
-  let stats = getStats();
-  bi.$body().append(stats.dom);
+    //Create the scene, on load, then begin rending
+    const s = window.s = new MainScene(conn.url, r);
+    await s._phys.onLoad();
+    await s._net.onLoad();
+    s._phys.play();
 
-  let stats2 = getStats();
-  let physPanel = stats2.addPanel(new Stats.Panel('OimoFPS', '#80f', '#102'));
-  stats2.showPanel(3);
-  bi.$body().append(stats2.dom);
-
-  let r = new THREE.WebGLRenderer({
-    canvas: $("#game")[0]
-  });
-  r.setSize( window.innerWidth, window.innerHeight );
-
-  //Create the scene, on load, then begin rending
-  const s = window.s = new MainScene(connectToUrl, r);
-  s._phys.onLoad().then(()=>{
-    s._net.onLoad().then(()=>{
-      s._phys.play();
-
-      let l = ()=>{
-        stats.begin();
-        s.render(r);
-        stats.end();
-        physPanel.update(s._phys.fps, 100);
-        requestAnimationFrame(l);
-      };
+    const l = ()=>{
+      stats.begin();
+      s.render(r);
+      stats.end();
+      physPanel.update(s._phys.fps, 100);
       requestAnimationFrame(l);
-    });
+    };
+    requestAnimationFrame(l);
   });
-}
+});
+/// #else
+(async ()=>{
+  console.log("== SERVER ==");
+  const s = new MainScene();
+  await s._phys.onLoad();
+  console.log("Loaded Physics");
+  await s._net.onLoad();
+  console.log("Loaded Networking");
+
+  console.log("Starting Physics Simulation");
+  s._phys.play();
+})();
+/// #endif

@@ -1,5 +1,8 @@
 import { PromiseProxy } from "./utils";
-const WSWebSocket = eval('require("ws")');
+/// #if NODEJS
+const WSWebSocket = eval('require')("ws");
+/// #endif
+const isServer = typeof window === "undefined";
 
 /**Encapsulates all the networking work needed to keep
  * objects synced between computers

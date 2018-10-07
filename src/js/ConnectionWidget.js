@@ -11,14 +11,18 @@ export class ConnectionWidget extends EventEmitter {
             <button id="connect">Connect to Server</button>
             <button id="startServer">Start Server</button>
         `);
-        dom.querySelector("#connect").addEventListener("click",
+        let ids = this._ids = {};
+        dom.querySelectorAll("*[id]").forEach((el)=>{
+            ids[el.id] = el;
+        });
+        ids.connect.addEventListener("click",
             this.emit.bind(this, "connectTo", this.url));
-        dom.querySelector("#startServer").addEventListener("click",
+        ids.connectTo.addEventListener("click",
             this.emit.bind(this, "startServer"));
     }
 
     get url(){
-        return this._dom.querySelector("#connectTo").value;
+        return this._ids.connectTo.value;
     }
 
     get dom(){
