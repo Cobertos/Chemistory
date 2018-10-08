@@ -7,7 +7,7 @@ export class ConnectionWidget extends EventEmitter {
         //TODO: create a wrapper for this
         //that will throw on invalid HTML
         let dom = this._dom = parseHTML(`
-            <input id="connectTo" type="text"></input>
+            <input id="connectTo" type="text" value="ws://localhost:10016"></input>
             <button id="connect">Connect to Server</button>
             <button id="startServer">Start Server</button>
         `);
@@ -17,7 +17,7 @@ export class ConnectionWidget extends EventEmitter {
         });
         ids.connect.addEventListener("click",
             this.emit.bind(this, "connectTo", this.url));
-        ids.connectTo.addEventListener("click",
+        ids.startServer.addEventListener("click",
             this.emit.bind(this, "startServer"));
     }
 

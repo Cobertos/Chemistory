@@ -2,13 +2,13 @@
  * @prop {object} bindings Action labels to keys for those actions
  * @prop {object} reverseBindings Keys on the keyboard and what action they're mapped to
  */
-export class _Input {
+class _Input {
   constructor(){
     this.bindings = {
-      up: "W", 
-      down: "S",
-      left: "A",
-      right: "D",
+      up: "w", 
+      down: "s",
+      left: "a",
+      right: "d",
       jump: " ",
       //look: "mouse"
     };
@@ -24,7 +24,7 @@ export class _Input {
         .forEach((k)=>{
           let bind = k;
           let key = this.bindings[k];
-          this._reverseBindings[bind] = key;
+          this._reverseBindings[key] = bind;
         });
     }
     return this._reverseBindings;
@@ -46,17 +46,18 @@ export class _Input {
     this.keyValues[key] = val;
   }
 }
-export const Input = new _Input();
+const Input = new _Input();
+export default Input;
 
 /// #if BROWSER
 window.addEventListener("keydown", (e)=>{
   if(Object.keys(Input.reverseBindings).includes(e.key)) {
-    _setInput(e.key, true);
+    Input._setInput(e.key, true);
   }
 });
 window.addEventListener("keyup", (e)=>{
   if(Object.keys(Input.reverseBindings).includes(e.key)) {
-    _setInput(e.key, false);
+    Input._setInput(e.key, false);
   }
 });
 /*window.addEventListener("mousemove", (/*e)=>{

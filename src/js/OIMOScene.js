@@ -10,7 +10,11 @@ export class OIMOScene {
     constructor() {
         this._objects = {};
 
+        /// #if NODEJS
         this._worker = new Worker("./dist/server/OimoWorker.js");
+        /// #else
+        this._worker = new Worker("/js/OimoWorker.js");
+        /// #endif
         this._worker.postMessage = this._worker.webkitPostMessage || this._worker.postMessage;
         this._worker.onmessage = this.onMessage.bind(this);
 

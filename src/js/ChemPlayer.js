@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { SimObject, PhysicsPart } from "./BaseObject";
-import { getInput } from "./input";
+import Input from "./input";
+window.i = Input;
 
 export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
   constructor(cam) {
@@ -25,22 +26,22 @@ export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
 
     //Calculate player movement
     let mov = new THREE.Vector3(0,0,0);
-    if(getInput("up")) {
+    if(Input.getInput("up")) {
       mov.add(new THREE.Vector3(0,0,1));
     }
-    if(getInput("down")) {
+    if(Input.getInput("down")) {
       mov.add(new THREE.Vector3(0,0,-1));
     }
-    if(getInput("left")) {
+    if(Input.getInput("left")) {
       mov.add(new THREE.Vector3(1,0,0));
     }
-    if(getInput("right")) {
+    if(Input.getInput("right")) {
       mov.add(new THREE.Vector3(-1,0,0));
     }
     mov.normalize();
     mov.multiplyScalar(10);
 
-    if(getInput("jump")) {
+    if(Input.getInput("jump")) {
       mov.add(new THREE.Vector3(0,5,0));
     }
     if(mov.lengthSq() < 0.01 && this.linearVelocity.lengthSq() < 0.01) {
