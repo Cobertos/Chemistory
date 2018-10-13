@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { SimObject, PhysicsPart } from "./BaseObject";
+import { SimObject, PhysicsPart } from "./SimObject";
 import Input from "./input";
 window.i = Input;
 

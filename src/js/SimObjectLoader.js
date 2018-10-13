@@ -4,7 +4,7 @@ const {Promise} = RSVP;
 import "./vendor/LoaderSupport.js"; //Loads to THREE.LoaderSupport
 import "./vendor/OBJLoader2.js"; //Loads to THREE.OBJLoader2
 import "three-examples/loaders/MTLLoader.js"; //Loads to THREE.MTLLoader
-import { SimObject, PhysicsPart } from "./BaseObject";
+import { SimObject, PhysicsPart } from "./SimObject";
 const inNode = typeof window === "undefined";
 const isServer = inNode;
 

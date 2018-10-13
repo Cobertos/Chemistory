@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import $ from "jquery";
-import { SimScene } from "./BaseObject";
+import { SimScene } from "./SimObject";
 import { ChemTable } from "./ChemTable";
 import { ChemPlayer } from "./ChemPlayer";
 import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayMinimap";
 import "three-examples/loaders/SVGLoader.js"; //Loads to THREE.SVGLoader
 import { conversions } from "./utils";
-import { SimObjectLoader } from "./BaseObjectLoader.js";
+import { SimObjectLoader } from "./SimObjectLoader.js";
 const playerFOV = 75;
 
 export class MainScene extends SimScene {
