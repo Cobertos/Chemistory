@@ -60,6 +60,44 @@ window.addEventListener("keyup", (e)=>{
     Input._setInput(e.key, false);
   }
 });
+
+let touchKey;
+function touchEventToKey(e){
+  console.log(e);
+  let t = e.touches[0];
+  if(t.screenX < window.innerWidth/2) {
+    if(t.screenY < window.innerWidth/2) {
+      return "s";
+    }
+    else {
+      return "a";
+    }
+  }
+  else {
+    if(t.screenY < window.innerWidth/2) {
+      return "d";
+    }
+    else {
+      return "w";
+    }
+  }
+}
+window.addEventListener("touchstart", (e)=>{
+  let key = touchEventToKey(e);
+  let hasKey = Object.keys(Input.reverseBindings).includes(key);
+  if(hasKey && touchKey === undefined) {
+    Input._setInput(key, true);
+    touchKey = key;
+  }
+  else if(hasKey) {
+    Input._setInput(touchKey, false);
+    Input._setInput(key, true);
+    touchKey = key;
+  }
+});
+window.addEventListener("touchend", (e)=>{
+  Input._setInput(touchKey, false);
+});
 /*window.addEventListener("mousemove", (/*e)=>{
   //TODO: This should work, but I realized I didn't need it rn
   //let pos = conversions.eventToWindowPX(e);
