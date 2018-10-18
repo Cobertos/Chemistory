@@ -3,12 +3,14 @@ const sass = require("gulp-sass");
 const cleanCSS = require('gulp-clean-css');
 const webpack = require('webpack');
 const WebpackMessages = require('webpack-messages');
-const gWebpack = require('webpack-stream');
+const gulpWebpack = require('webpack-stream');
+const mocha = require('gulp-mocha'); //Requires filepaths, not vinyl objects!
 const browserSync = require('browser-sync').create();
 const merge = require('webpack-merge');
 
 const SRC_DIR = "src"; //Source directory
 const DIST_DIR = "dist"; //Distribution directory
+const TEST_DIR = "test"; //Directory the tests live in
 
 const path = require("path");
 const git = require('isomorphic-git');
@@ -112,20 +114,31 @@ const webpackOpts = (which)=>{
         ]
     };
     const isServer = which === "SERVER";
+    const isClient = which === "CLIENT";
+    const isTest = which === "TEST";
     if(isServer) {
-        let serverOpts = merge(base, {
+        base = merge(base, {
             entry: {
                 server: base.entry.main
             }
         });
-        delete serverOpts.entry.main; //Don't generate main
-        serverOpts.module.rules[2].use[1].options.NODEJS = true;
-        return serverOpts;
+        delete base.entry.main; //Don't generate main
+        base.module.rules[2].use[1].options.NODEJS = true;
+        return base;
     }
-    else { //CLIENT
+    else if(isClient){
         base.module.rules[2].use[1].options.BROWSER = true;
         return base;
     }
+    else if(isTest){
+        base.context = path.resolve(__dirname, TEST_DIR);
+        base.entry = {
+            test: "./main.js"
+        };
+        base.module.rules[2].use[1].options.NODEJS = true;
+        return base;
+    }
+    throw new Error("Invalid webpack config param " + which);
 }
 
 const substituteLoaderOptions = {};
@@ -157,14 +170,24 @@ gulp.task(function scss(){
 
 gulp.task("jsBrowser", gulp.series("buildInfo", ()=>{
     return gulp.src("./")
-        .pipe(gWebpack( webpackOpts("CLIENT"), webpack ))
+        .pipe(gulpWebpack( webpackOpts("CLIENT"), webpack ))
         .pipe(gulp.dest( DIST_DIR + "/js" ));
 }));
 
 gulp.task("jsServer", gulp.series("buildInfo", ()=>{
     return gulp.src("./")
-        .pipe(gWebpack( webpackOpts("SERVER"), webpack ))
+        .pipe(gulpWebpack( webpackOpts("SERVER"), webpack ))
         .pipe(gulp.dest( DIST_DIR + "/server" ));
+}));
+
+gulp.task("jsTest", gulp.series("buildInfo", ()=>{
+    return gulp.src("./")
+        .pipe(gulpWebpack( webpackOpts("TEST"), webpack ))
+        .pipe(gulp.dest( DIST_DIR + "/test" ));
+}));
+gulp.task("test", gulp.series("jsTest", ()=>{
+    return gulp.src( DIST_DIR + "/test" )
+        .pipe(mocha());
 }));
 
 gulp.task(function assets(){
@@ -193,6 +216,7 @@ gulp.task(function watch(){
         browserSync.reload();
         done();
     }));
+    gulp.watch(TEST_DIR + "/**/*", gulp.task("test"));
     //TODO: Readd, this is one cause of it taking so long to Ctrl + C gulp
     /*gulp.watch([
       SRC_DIR + "/** /*",

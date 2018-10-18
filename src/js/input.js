@@ -1,8 +1,10 @@
 /**Class that handles input
  * @prop {object} bindings Action labels to keys for those actions
  * @prop {object} reverseBindings Keys on the keyboard and what action they're mapped to
+ * @todo This should eventually be able to provide bindings to the
+ * class instead of it just testing that they exist b/c of the defaults
  */
-class _Input {
+export class _Input {
   constructor(){
     this.bindings = {
       up: "w", 
