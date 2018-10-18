@@ -32,7 +32,7 @@ const readFilePromise = (file, encoding)=>{
 };
 
 const webpackOpts = (which)=>{
-    const base = {
+    let base = {
         mode : "development",
         context : path.resolve(__dirname, "./" + SRC_DIR + "/js"),
         entry : {

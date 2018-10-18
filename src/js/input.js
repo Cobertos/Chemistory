@@ -1,19 +1,13 @@
+import { _assert } from "./utils.js";
+
 /**Class that handles input
  * @prop {object} bindings Action labels to keys for those actions
  * @prop {object} reverseBindings Keys on the keyboard and what action they're mapped to
- * @todo This should eventually be able to provide bindings to the
- * class instead of it just testing that they exist b/c of the defaults
  */
 export class _Input {
-  constructor(){
-    this.bindings = {
-      up: "w", 
-      down: "s",
-      left: "a",
-      right: "d",
-      jump: " ",
-      //look: "mouse"
-    };
+  constructor(bindings){
+    _assert(typeof bindings === "object", "Bindings must be an object!");
+    this.bindings = bindings;
     this._reverseBindings = undefined;
 
     this.keyValues = {};
@@ -48,7 +42,14 @@ export class _Input {
     this.keyValues[key] = val;
   }
 }
-const Input = new _Input();
+const Input = new _Input({
+  up: "w", 
+  down: "s",
+  left: "a",
+  right: "d",
+  jump: " ",
+  //look: "mouse"
+});
 export default Input;
 
 /// #if BROWSER
