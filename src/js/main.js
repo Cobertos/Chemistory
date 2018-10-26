@@ -2,6 +2,9 @@ import * as THREE from "three";
 import Stats from "stats.js";
 import $ from "jquery";
 import moment from "moment";
+
+import "./interop/promiseWrappers";
+
 import { BuildInfoWidget } from "./BuildInfoWidget";
 import { ConnectionWidget } from "./ConnectionWidget";
 import { MainScene } from "./MainScene";

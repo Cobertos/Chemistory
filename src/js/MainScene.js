@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import $ from "jquery";
-import { SimScene, SimObjectLoader } from "./engine";
+import { SimScene } from "./engine";
+import { SimObjectIDLoader } from "./SimObjectIDLoader";
 import { ChemTable } from "./ChemTable";
 import { ChemPlayer } from "./ChemPlayer";
 import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayMinimap";
@@ -65,16 +66,18 @@ export class MainScene extends SimScene {
     /// #endif
 
     //Level
-    let levelLoader = new SimObjectLoader();
-    levelLoader.load("res/chemistory-level", "./dist/res/chemistory-level")
+    let levelLoader = new SimObjectIDLoader();
+    let uri;
+    /// #if BROWSER
+      uri = "res/chemistory-level";
+    /// #else
+      uri = "./dist/res/chemistory-level";
+    /// #endif
+
+    levelLoader.load(uri)
       .then((lvl)=>{
-        console.log(lvl);
-        //Must add manually because physics won't register unless
-        //added directly to the scene
-        lvl.children.slice().forEach((o)=>{
-          this.add(o);
-        });
-        let spawns = levelLoader._idMap["SPAWN"];
+        this.add(lvl);
+        let spawns = levelLoader.idMap["SPAWN"];
         console.log(spawns[0].getWorldPosition(new THREE.Vector3()));
         spawns[0].geometry.computeBoundingBox();
         let bbc = spawns[0].geometry.boundingBox.getCenter(new THREE.Vector3());
