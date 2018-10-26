@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { SimObject } from "./SimObject";
+import { SimObject } from "./engine";
 
 /**Common functionality between the 2D and 3D subway minimaps.
  * By default it will mirror the XZ axis of all tracked objects to

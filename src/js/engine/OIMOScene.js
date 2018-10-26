@@ -1,7 +1,7 @@
 /// #if NODEJS
 const Worker = eval('require')("worker_threads").Worker;
 /// #endif
-import { PromiseProxy } from "./utils";
+import { PromiseProxy } from "../utils";
 
 /**Encapsulates an OIMOWorker and all the object communications with it
  * @todo The getInfo() doesn't actually work Im pretty sure

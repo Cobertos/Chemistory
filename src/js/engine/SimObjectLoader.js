@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import RSVP from "rsvp";
 const {Promise} = RSVP;
-import "./vendor/LoaderSupport.js"; //Loads to THREE.LoaderSupport
-import "./vendor/OBJLoader2.js"; //Loads to THREE.OBJLoader2
+import "../vendor/LoaderSupport.js"; //Loads to THREE.LoaderSupport
+import "../vendor/OBJLoader2.js"; //Loads to THREE.OBJLoader2
 import "three-examples/loaders/MTLLoader.js"; //Loads to THREE.MTLLoader
-import { SimObject, PhysicsPart } from "./SimObject";
+import { PhysicsPart } from "./PhysicsPart";
+import { SimObject } from "./SimObject";
 const inNode = typeof window === "undefined";
 const isServer = inNode;
 
@@ -30,7 +31,7 @@ export class SimObjectLoader {
         loader.loadMtl(url + ".mtl", undefined, resolve, undefined, reject);
       }
       else {
-        var fs = eval('require("fs")');
+        var fs = __non_webpack_require__("fs");
         loader.loadMtl("", fs.readFileSync(path + ".mtl"), resolve, undefined, reject);
       }
     }).then((mtlCreator)=>{
@@ -41,7 +42,7 @@ export class SimObjectLoader {
           loader.load(url + ".obj", resolve, null, reject, null, true );
         }
         else {
-          var fs = eval('require("fs")');
+          var fs = __non_webpack_require__("fs");
           loader.parseAsync(fs.readFileSync(path + ".obj"), resolve);
         }
       });
@@ -100,9 +101,8 @@ export class SimObjectLoader {
     let matName = obj.material && obj.material.name;
 
     let physics = !!name.match(/PHYS=/) || 
-      !!matName.match(/(CLIP|NODRAW|DEFAULT)/i);
+      !!(matName && matName.match(/(CLIP|NODRAW|DEFAULT)/i));
     let id = name.match(/ID=([a-z0-9A-Z-]+)/);
-    console.log(id);
     if(id) {
       id = id[1];
       if(!this._idMap[id]) {
@@ -110,7 +110,6 @@ export class SimObjectLoader {
       }
 
       this._idMap[id].push(obj);
-      console.log(this._idMap);
     }
 
     if(physics) {
@@ -129,7 +128,8 @@ export class SimObjectLoader {
         obj.geometry.computeBoundingBox();
         let bb = obj.geometry.boundingBox;
         bb.getSize(threeSize);
-        bb.getCenter(threePos);
+        bb.getCenter(threePos)
+        threePos.add(obj.position);
       }
       else if(shape === "SPHERE") {
         //TODO: UNIMPLEMENTED! This will fail in getPhysicsParams for
@@ -157,7 +157,6 @@ export class SimObjectLoader {
       }
       let newObj = new cls();
       newObj.copy(obj); //Copy all old values into the new one
-      console.log(newObj);
       if(newObj.geometry) {
         newObj.geometry.copy(obj.geometry);
         newObj.material = obj.material;

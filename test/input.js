@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { _Input as Input } from "../src/js/input.js";
+import { _Input as Input } from "../src/js/input";
 
 describe("input", ()=>{
     it("has bindings that map actions to keys", ()=>{

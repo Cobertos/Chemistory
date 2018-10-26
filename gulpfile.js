@@ -37,7 +37,7 @@ const webpackOpts = (which)=>{
         context : path.resolve(__dirname, "./" + SRC_DIR + "/js"),
         entry : {
             main: "./main.js",
-            OimoWorker: "./OIMOWorker.js"
+            OimoWorker: "./engine/OIMOWorker.js"
         },
         output : {
             //path : //handled by gulp

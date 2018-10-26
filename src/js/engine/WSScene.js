@@ -1,4 +1,4 @@
-import { PromiseProxy } from "./utils";
+import { PromiseProxy } from "../utils";
 /// #if NODEJS
 const WSWebSocket = eval('require')("ws");
 /// #endif

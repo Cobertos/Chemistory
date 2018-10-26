@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { SimObject, PhysicsPart } from "./SimObject";
+import { SimObject, PhysicsPart } from "./engine";
 import { ChemItem } from "./ChemItem";
 
 export class ChemTable extends SimObject(THREE.Mesh, PhysicsPart) {

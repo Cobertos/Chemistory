@@ -39,6 +39,7 @@
     "mocha": "^5.2.0",
     "raw-loader": "^0.5.1",
     "rsvp": "^4.8.1",
+    "sinon": "^7.0.0",
     "time-grunt": "^1.4.0",
     "webpack": "^4.3.0",
     "webpack-merge": "^4.1.4",

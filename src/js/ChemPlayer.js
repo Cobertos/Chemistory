@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import { SimObject, PhysicsPart } from "./SimObject";
+import { SimObject, PhysicsPart } from "./engine";
 import Input from "./input";
-window.i = Input;
 
 export class ChemPlayer extends SimObject(THREE.Mesh, PhysicsPart) {
   constructor(cam) {
