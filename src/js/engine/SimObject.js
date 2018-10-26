@@ -23,6 +23,7 @@ export function SimObject(threeCls, ...partClss) {
   const cls = class _SimObject extends aggregation(threeCls, ...partClss) {
     constructor(...args){
       super(...args);
+      this.partClss = partClss;
       setTimeout(this.finishConstruction.bind(this)); //The next javascript frame, call this
     }
 

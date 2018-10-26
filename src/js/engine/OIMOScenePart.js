@@ -6,8 +6,8 @@ import { PromiseProxy } from "../utils";
 /**Encapsulates an OIMOWorker and all the object communications with it
  * @todo The getInfo() doesn't actually work Im pretty sure
  */
-export class OIMOScene {
-    constructor() {
+export class OIMOScenePart {
+    initializer() {
         this._objects = {};
 
         /// #if NODEJS
@@ -26,6 +26,10 @@ export class OIMOScene {
         this._loadInterval = setInterval(()=>{
             this._worker.postMessage({ command: "loadbeat" });
         }, 100);
+    }
+
+    async load() {
+        await this._workerPromise;
     }
 
     onMessage(msg) {
@@ -60,8 +64,16 @@ export class OIMOScene {
         });
     }
 
-    onLoad() {
-        return this._workerPromise;
+    onRegister(obj) {
+        if(obj.supportsPhysics) {
+            this.phys_add(obj.getPhysicsParams(), obj);
+        }
+    }
+
+    onUnregister(obj) {
+        if(obj.supportsPhysics) {
+            this.phys_del(obj.getPhysicsParams());
+        }
     }
 
     /**Adds a physics object with the given params, optionally taking
@@ -69,7 +81,7 @@ export class OIMOScene {
      * @param {object} physObj Object with physics parametets
      * @param {THREE.Object3D} [threeObj=undefined] THREE.js update to update
      */
-    add(physObj, threeObj=undefined) {
+    phys_add(physObj, threeObj=undefined) {
         this._objects[physObj.id] = threeObj;
 
         this._worker.postMessage({
@@ -90,7 +102,7 @@ export class OIMOScene {
      * @param {boolean} [setVel=false] Conditionally set linear velocity
      * @param {boolean} [setAngVel=false] Conditionally set angular velocity
      */
-    set(physObj, setPos=true, setRot=true, setVel=false, setAngVel=false) {
+    phys_set(physObj, setPos=true, setRot=true, setVel=false, setAngVel=false) {
         this._worker.postMessage({
             command: "set",
             obj: physObj,
@@ -101,7 +113,7 @@ export class OIMOScene {
     /**Deletes the given physics object from the simulation
      * @param {object} physObj The physics object to delete
      */
-    del(physObj) {
+    phys_del(physObj) {
         this._worker.postMessage({
             command: "del",
             id: physObj.id
@@ -114,7 +126,7 @@ export class OIMOScene {
      * @param {Number[3]} pos The position to apply to
      * @param {Number[3]} force The force to apply, will be scaled by 1/m
      */
-    impulse(physObj, pos, force) {
+    phys_impulse(physObj, pos, force) {
         this._worker.postMessage({
             command: "impulse",
             id: physObj.id,
@@ -126,13 +138,13 @@ export class OIMOScene {
     /**Gets the currect fps
      * @returns {number} The last FPS received from the OIMOWorker
      */
-    get fps() {
+    get phys_fps() {
         return this._lastFPS;
     }
 
     /**Starts the simulation
      */
-    play() {
+    phys_play() {
         this._worker.postMessage({
             command: "play"
         });
@@ -140,7 +152,7 @@ export class OIMOScene {
 
     /**Pauses the simulation
      */
-    pause() {
+    phys_pause() {
         this._worker.postMessage({
             command: "pause"
         });

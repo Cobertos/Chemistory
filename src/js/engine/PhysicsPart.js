@@ -18,8 +18,6 @@ export class PhysicsPart extends BasePart {
     this.linearVelocity = new THREE.Vector3(0,0,0);
     this.angularVelocity = new THREE.Vector3(0,0,0);
 
-    this._physScene = undefined;
-
     //gets sent to the physics engine on added to scene
   }
 
@@ -30,11 +28,11 @@ export class PhysicsPart extends BasePart {
    * @param {boolean} [dirtyAngVel=true] Dirty the angular velocity
    */
   dirty(dirtyPos=true, dirtyRot=false, dirtyVel=false, dirtyAngVel=false) {
-    if(!this._physScene) {
+    if(!this.scene) {
       throw new Error("No physics scene");
     }
     let params = this.getPhysicsParams();
-    this._physScene.set(params, dirtyPos, dirtyRot, dirtyVel, dirtyAngVel);
+    this.scene.phys_set(params, dirtyPos, dirtyRot, dirtyVel, dirtyAngVel);
   }
 
   /**Adds a force to the object in the next physics frame
@@ -43,7 +41,7 @@ export class PhysicsPart extends BasePart {
    * world coordinates. Will use the current position if undefined
    */
   impulse(force, pos=undefined) {
-    this._physScene.impulse(this.getPhysicsParams(), 
+    this.scene.phys_impulse(this.getPhysicsParams(), 
       pos ? pos.toArray() : this.getPhysicsParams().pos,
       force.toArray());
   }

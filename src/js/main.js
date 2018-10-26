@@ -57,15 +57,14 @@ $(()=>{
 
     //Create the scene, on load, then begin rending
     const s = window.s = new MainScene(conn.url, r);
-    await s._phys.onLoad();
-    await s._net.onLoad();
-    s._phys.play();
+    await s.load();
+    s.phys_play();
 
     const l = ()=>{
       stats.begin();
       s.render(r);
       stats.end();
-      physPanel.update(s._phys.fps, 100);
+      physPanel.update(s.phys_fps, 100);
       requestAnimationFrame(l);
     };
     requestAnimationFrame(l);
@@ -75,12 +74,11 @@ $(()=>{
 (async ()=>{
   console.log("== SERVER ==");
   const s = new MainScene();
-  await s._phys.onLoad();
+  await s.load();
   console.log("Loaded Physics");
-  await s._net.onLoad();
   console.log("Loaded Networking");
 
   console.log("Starting Physics Simulation");
-  s._phys.play();
+  s.phys_play();
 })();
 /// #endif

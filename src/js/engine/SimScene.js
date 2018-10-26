@@ -1,15 +1,23 @@
 import * as THREE from "three";
-import { OIMOScene } from "./OIMOScene.js";
-import { WSScene } from "./WSScene.js";
 import { SimObject } from "./SimObject.js";
+import { WSScenePart } from "./WSScenePart.js";
+import { OIMOScenePart } from "./OIMOScenePart.js";
+import RSVP from "rsvp";
+const {Promise} = RSVP;
 
 /**Scene that encapsulates mutiple types of scenes
  */
-export class SimScene extends SimObject(THREE.Scene) {
+export class SimScene extends SimObject(THREE.Scene, WSScenePart, OIMOScenePart) {
   constructor(url) {
-    super();
-    this._phys = new OIMOScene();
-    this._net = new WSScene(this, url);
+    super(url);
+  }
+
+  async load() {
+    let promises = this.partClss.map((partCls)=>{
+      if(typeof partCls.load === "function") {
+        return partCls.load();
+      }}).filter((o)=>!!o); //Remove undefineds
+    return Promise.all(promises);
   }
 
   get scene() {
@@ -21,13 +29,7 @@ export class SimScene extends SimObject(THREE.Scene) {
    * with the subsystems. Should already be in the THREE scene
    */
   register(obj) {
-    if(obj.supportsNetworking) {
-      obj._netScene = this._net;
-    }
-    if(obj.supportsPhysics) {
-      obj._physScene = this._phys;
-      this._phys.add(obj.getPhysicsParams(), obj);
-    }
+    this._partApply("onRegister", [obj]);
   }
 
   /**SimObjects added to us will call the register function
@@ -35,12 +37,6 @@ export class SimScene extends SimObject(THREE.Scene) {
    * with the subsystems. Should still be in the THREE scene
    */
   unregister(obj) {
-    if(obj.supportsNetworking) {
-      this._netScene = undefined
-    }
-    if(obj.supportsPhysics) {
-      this._phys.del(obj.getPhysicsParams());
-      obj._physScene = undefined;
-    }
+    this._partApply("onUnregister", [obj]);
   }
 }

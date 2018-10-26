@@ -9,8 +9,8 @@ const isServer = typeof window === "undefined";
  * @todo If we need UDP and in browser listen servers, consider using
  * https://peerjs.com/, which uses WebRTC data channels for UDP
  */
-export class WSScene {
-    constructor(threeScene, url){
+export class WSScenePart {
+    initializer(url){
         this._connectionLoaded = false;
         this._connectionPromise = new PromiseProxy();
         let isServer = this._isServer = !url;
@@ -46,8 +46,8 @@ export class WSScene {
         return this._isServer;
     }
 
-    onLoad() {
-        return this._connectionPromise;
+    async load() {
+        await this._connectionPromise;
     }
 
     //TODO: RPCs
