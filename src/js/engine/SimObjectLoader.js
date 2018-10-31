@@ -32,7 +32,12 @@ export class SimObjectLoader {
    */
   process(rootObj) {
     //Replaces an obj in the heirarchy with another obj
+    //Passing to as null will remove from
     const replaceObj = (from, to)=>{
+      if(to === null) {
+        from.parent.remove(from);
+        return;
+      }
       from.children.slice().forEach((child)=>{
         to.add(child);
       });
@@ -59,7 +64,7 @@ export class SimObjectLoader {
    * none of the children
    * @private
    * @param {THREE.Object3D} obj the object to process
-   * @returns {THREE.Object3D|SimObject} The modified object
+   * @returns {THREE.Object3D|SimObject|null} The modified object or null to remove
    * @todo Sphere will fail until supported in OIMOWorker and OIMOScene
    * @todo All objects are static right now...
    * @todo This would be way better with bsp ;_;

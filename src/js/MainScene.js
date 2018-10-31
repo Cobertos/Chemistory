@@ -1,8 +1,7 @@
 import * as THREE from "three";
 import $ from "jquery";
 import { SimScene } from "./engine";
-import { SimObjectIDLoader } from "./SimObjectIDLoader";
-import { ChemTable } from "./ChemTable";
+import { ChemistoryLoader } from "./ChemistoryLoader";
 import { ChemPlayer } from "./ChemPlayer";
 import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayMinimap";
 import { conversions } from "./utils";
@@ -45,14 +44,8 @@ export class MainScene extends SimScene {
     light.position.set(0,2,0);
     this.add(light);
 
-    let table1 = new ChemTable(new THREE.Vector3(0,0.5,-2));
-    this.add(table1);
-
-    let table2 = new ChemTable(new THREE.Vector3(0,0.5,-10));
-    this.add(table2);
-
     //Level
-    let levelLoader = new SimObjectIDLoader();
+    let levelLoader = new ChemistoryLoader();
     let uri;
     /// #if BROWSER
       uri = "res/chemistory-level-2";
@@ -63,48 +56,28 @@ export class MainScene extends SimScene {
     levelLoader.load(uri)
       .then((lvl)=>{
         this.add(lvl);
-        let spawns = levelLoader.idMap["SPAWN"];
-        spawns[0].geometry.computeBoundingBox();
-        let bbc = spawns[0].geometry.boundingBox.getCenter(new THREE.Vector3());
-        player.position.copy(bbc);
+        //Choose a spawn for the player, dirty it to get it to teleport
+        player.position.copy(levelLoader.spawns[0]);
         player.dirty(true, false, false, false);
-        spawns.forEach((o)=>{
-          o.parent.remove(o);
-        });
 
         //Handle the Minimap
         let mmGroup = new THREE.Group();
-        let allObjs = Array.apply(null, {length: 2})
+        let m3Box = new THREE.Box3().setFromPoints(Array.apply(null, {length: 2})
           .map((_,idx)=>"SUBWAY"+(idx+1)) //Generates SUBWAY1-SUBWAY2
           .map((key)=>levelLoader.idMap[key])
-          .map((ids, idx)=>{
-            //Give all material of each one a separate color for that subway system
-            let color = [0xFF0000, 0xFFFF00][idx]
-            let mat = new THREE.MeshBasicMaterial({ color });
-
-            ids.forEach((o)=>{
-              o.geometry.computeBoundingBox();
-              let center = new THREE.Vector3();
-              o.geometry.boundingBox.getCenter(center);
-              let c2 = center.clone().negate();
-              o.geometry.translate(c2.x, c2.y, c2.z);
-              o.material = mat;
-              o.position.copy(center);
-              o.position.setY(0); //Flatten
-              mmGroup.add(o);
-            });
-            return ids;
+          .reduce((item,acc)=>acc.concat(item), [])
+          .map((obj)=>{
+            //Add to mmGroup (why did I do it in this huge chain? cause Im dumb)
+            mmGroup.add(obj);
+            return obj;
           })
-          .reduce((item,acc)=>acc.concat(item), []);
-        let m3Box = new THREE.Box3()
-          .setFromPoints(allObjs.map((obj)=>obj.position));
-          console.log(m3Box.getCenter(), m3Box.getSize(), allObjs.map((obj)=>obj.position));
+          .map((obj)=>obj.position));
         let mm3D = new SubwayMinimap3D(player, mmGroup);
         levelLoader.idMap["3DMM"][0].geometry.computeBoundingBox();
         mm3D.position.copy(levelLoader.idMap["3DMM"][0].geometry.boundingBox.getCenter(new THREE.Vector3())
           .add(new THREE.Vector3(0, m3Box.getSize(new THREE.Vector3()).z/2*0.02 + 1, 0)));
         console.log(mm3D.position);
-        mm3D.scale.set(0.02,0.02,0.02);
+        mm3D.scale.set(0.04,0.04,0.04);
         this.add(mm3D);
         let mm2D = new SubwayMinimap2D(player, mmGroup);
         mmGroup.children.forEach((obj)=>{
@@ -113,88 +86,10 @@ export class MainScene extends SimScene {
         mm2D.scale.set(0.03,0.03,0.03);
         mm2D.position.set(1,4,-4);
         player.add(mm2D);
-
-        //Handle gas
-        //TODO: Actually create the indicator on the minimap
-        //TODO: Actually create interactable behavior
-        //TODO: Nail down the specifics of the timing related to
-        //the gas (go back to story to nail down how all this
-        //ties in)
-        //levelLoader.idMap["GAS1"];
       })
       .catch((err)=>{
         console.error(err);
       });
-
-
-    /// #if BROWSER
-      let grabbedItem;
-      let lastMP = undefined;
-      $(r.domElement).on("mousedown", (e)=>{
-        let $canvas = $(e.target);
-        let mp = conversions.viewportPXToviewportNDC($canvas, 
-          conversions.windowPXToViewportPX($canvas, 
-          conversions.eventToWindowPX(e)));
-
-        let rc = new THREE.Raycaster();
-        rc.setFromCamera(mp, player.camera);
-        let hit = rc.intersectObjects(this.children);
-        hit.forEach((h)=>{
-          if(typeof h.object.onRaycast === "function") {
-            h.object.onRaycast(h, this);
-          }
-        });
-        lastMP = mp;
-      });
-      $(r.domElement).on("mousemove", (e)=>{
-        if(!grabbedItem) {
-          return;
-        }
-
-        let $canvas = $(e.target);
-        let mp = conversions.viewportPXToviewportNDC($canvas, 
-          conversions.windowPXToViewportPX($canvas, 
-          conversions.eventToWindowPX(e)));
-
-        //Get drag coordinate system
-        let cy = THREE.Object3D.DefaultUp.clone(); //Maybe make camera up?
-        let cz = player.camera.getWorldDirection(new THREE.Vector3(0,0,0));
-        let cx = cz.clone().cross(cy).normalize();
-
-        //Find the distance of drag in each direction
-        let rc = new THREE.Raycaster();
-        rc.setFromCamera(mp, player.camera);
-        //let r = rc.ray; //Get internal .origin and .direction
-        let rc2 = new THREE.Raycaster();
-        rc2.setFromCamera(lastMP, player.camera);
-        //let r2 = rc2.ray;
-
-        let mouseDelta = mp.clone().sub(lastMP);
-        let dist = grabbedItem.position.clone()
-          .sub(player.camera.position);
-        let projDist = dist.clone().projectOnVector(cz);
-        let fov = player.camera.fov * Math.PI/180;
-        let fov_2 = fov/2;
-        let yViewportWidthAtDist = Math.tan(fov_2) * projDist.length() * 2;
-        let xViewportWidthAtDist = (player.camera.aspect) * yViewportWidthAtDist;
-        //NDC to scaled NDC
-        mouseDelta.multiply(new THREE.Vector2(xViewportWidthAtDist/2,yViewportWidthAtDist/2));
-        let itemDelta = cx.clone().multiplyScalar(mouseDelta.x)
-          .add(cy.clone().multiplyScalar(mouseDelta.y));
-
-        grabbedItem.position.add(itemDelta);
-        grabbedItem.dirty();
-        lastMP = mp.clone();
-      });
-      $(r.domElement).on("mouseup", ()=>{
-        if(!grabbedItem) {
-          return;
-        }
-        grabbedItem.material.color.set(new THREE.Color(1,0,0));
-        lastMP = undefined;
-        grabbedItem = undefined;
-      });
-    /// #endif
   }
 
   get camera(){
