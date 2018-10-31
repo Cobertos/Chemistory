@@ -5,7 +5,6 @@ import { SimObjectIDLoader } from "./SimObjectIDLoader";
 import { ChemTable } from "./ChemTable";
 import { ChemPlayer } from "./ChemPlayer";
 import { SubwayMinimapCommon, SubwayMinimap3D, SubwayMinimap2D } from "./SubwayMinimap";
-import "three-examples/loaders/SVGLoader.js"; //Loads to THREE.SVGLoader
 import { conversions } from "./utils";
 const playerFOV = 75;
 
@@ -52,43 +51,76 @@ export class MainScene extends SimScene {
     let table2 = new ChemTable(new THREE.Vector3(0,0.5,-10));
     this.add(table2);
 
-    //SVG
-    /// #if BROWSER
-    SubwayMinimapCommon.loadSVG()
-      .then((svgGroup)=>{
-        let mm3D = new SubwayMinimap3D(player, svgGroup);
-        this.add(mm3D);
-        let mm2D = new SubwayMinimap2D(player, svgGroup);
-        mm2D.scale.set(0.03,0.03,0.03);
-        mm2D.position.set(1,4,-4);
-        player.add(mm2D);
-      });
-    /// #endif
-
     //Level
     let levelLoader = new SimObjectIDLoader();
     let uri;
     /// #if BROWSER
-      uri = "res/chemistory-level";
+      uri = "res/chemistory-level-2";
     /// #else
-      uri = "./dist/res/chemistory-level";
+      uri = "./dist/res/chemistory-level-2";
     /// #endif
 
     levelLoader.load(uri)
       .then((lvl)=>{
         this.add(lvl);
         let spawns = levelLoader.idMap["SPAWN"];
-        console.log(spawns[0].getWorldPosition(new THREE.Vector3()));
         spawns[0].geometry.computeBoundingBox();
         let bbc = spawns[0].geometry.boundingBox.getCenter(new THREE.Vector3());
-        console.log(bbc);
         player.position.copy(bbc);
-        console.log(player.position);
         player.dirty(true, false, false, false);
-        console.log(player.getPhysicsParams());
         spawns.forEach((o)=>{
           o.parent.remove(o);
         });
+
+        //Handle the Minimap
+        let mmGroup = new THREE.Group();
+        let allObjs = Array.apply(null, {length: 2})
+          .map((_,idx)=>"SUBWAY"+(idx+1)) //Generates SUBWAY1-SUBWAY2
+          .map((key)=>levelLoader.idMap[key])
+          .map((ids, idx)=>{
+            //Give all material of each one a separate color for that subway system
+            let color = [0xFF0000, 0xFFFF00][idx]
+            let mat = new THREE.MeshBasicMaterial({ color });
+
+            ids.forEach((o)=>{
+              o.geometry.computeBoundingBox();
+              let center = new THREE.Vector3();
+              o.geometry.boundingBox.getCenter(center);
+              let c2 = center.clone().negate();
+              o.geometry.translate(c2.x, c2.y, c2.z);
+              o.material = mat;
+              o.position.copy(center);
+              o.position.setY(0); //Flatten
+              mmGroup.add(o);
+            });
+            return ids;
+          })
+          .reduce((item,acc)=>acc.concat(item), []);
+        let m3Box = new THREE.Box3()
+          .setFromPoints(allObjs.map((obj)=>obj.position));
+          console.log(m3Box.getCenter(), m3Box.getSize(), allObjs.map((obj)=>obj.position));
+        let mm3D = new SubwayMinimap3D(player, mmGroup);
+        levelLoader.idMap["3DMM"][0].geometry.computeBoundingBox();
+        mm3D.position.copy(levelLoader.idMap["3DMM"][0].geometry.boundingBox.getCenter(new THREE.Vector3())
+          .add(new THREE.Vector3(0, m3Box.getSize(new THREE.Vector3()).z/2*0.02 + 1, 0)));
+        console.log(mm3D.position);
+        mm3D.scale.set(0.02,0.02,0.02);
+        this.add(mm3D);
+        let mm2D = new SubwayMinimap2D(player, mmGroup);
+        mmGroup.children.forEach((obj)=>{
+          obj.parent.remove(obj);
+        });
+        mm2D.scale.set(0.03,0.03,0.03);
+        mm2D.position.set(1,4,-4);
+        player.add(mm2D);
+
+        //Handle gas
+        //TODO: Actually create the indicator on the minimap
+        //TODO: Actually create interactable behavior
+        //TODO: Nail down the specifics of the timing related to
+        //the gas (go back to story to nail down how all this
+        //ties in)
+        //levelLoader.idMap["GAS1"];
       })
       .catch((err)=>{
         console.error(err);

@@ -1,56 +1,11 @@
 import * as THREE from "three";
-import { SimObject } from "./engine";
+import { SimObject, DebugPart } from "./engine";
 
 /**Common functionality between the 2D and 3D subway minimaps.
  * By default it will mirror the XZ axis of all tracked objects to
  * it's own internal XZ axis, which can then be positioned as desired
  */
-export class SubwayMinimapCommon extends SimObject(THREE.Group) {
-  static loadSVG(fileName="res/milano_subway_map.svg") {
-    return new Promise((resolve, reject)=>{
-      let svg = new THREE.SVGLoader();
-      svg.load(fileName, (paths)=>{
-        //Hack to "fix" inkscape SVG
-        paths = paths.map((shapep)=>{
-          let path;
-          shapep.subPaths.forEach((subp)=>{
-            if(!path) {
-              path = new THREE.Path();
-              path.moveTo(subp.currentPoint.x, subp.currentPoint.y);
-              return; //contineu
-            }
-            else {
-              path.lineTo(subp.currentPoint.x, subp.currentPoint.y);
-            }
-            subp.curves.forEach((c)=>{
-              path.lineTo(c.v2.x, c.v2.y);
-            });
-          });
-          shapep.currentPath = path;
-          shapep.subPaths = [path];
-          return shapep;
-        });
-
-        //ShapePaths => THREE.Group
-        let group = new THREE.Group();
-        group.scale.set(0.1,-0.1,0.1);
-        paths.forEach((path)=>{
-          let mat = new THREE.MeshBasicMaterial( {
-            color: path.color,
-            side: THREE.DoubleSide,
-            depthWrite: false
-          } );
-          path.toShapes()
-            .forEach((shape)=>{
-              let geo = new THREE.ShapeBufferGeometry(shape);
-              let mesh = new THREE.Mesh(geo, mat);
-              group.add(mesh);
-            });
-        });
-        resolve(group);
-      }, undefined, reject);
-    });
-  }
+export class SubwayMinimapCommon extends SimObject(THREE.Group, DebugPart) {
 
   constructor(player, minimap) {
     super();
@@ -65,9 +20,6 @@ export class SubwayMinimapCommon extends SimObject(THREE.Group) {
 
     //Create the map
     this._minimap = minimap.clone();
-    this._minimap.quaternion.setFromAxisAngle(
-          //Rotate by 90 in the X
-          new THREE.Vector3(1,0,0), Math.PI/2);
     this._root.add(this._minimap);
 
     //Create the player indicator
@@ -115,6 +67,13 @@ export class SubwayMinimapCommon extends SimObject(THREE.Group) {
           .sub(this.position)
           .setY(0));
     });
+  }
+
+  onDebug() {
+    //Add something to visualize the center
+    this.add(new THREE.Mesh(
+      new THREE.BoxBufferGeometry(1,1,1),
+      new THREE.MeshBasicMaterial({ color: 0x00FF00 })));
   }
 }
 

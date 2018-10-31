@@ -10,6 +10,8 @@ import { _assert } from "../utils";
  * mixin into the new THREE.js class.
  * @returns {function} The new SimObject base class to inherit from. Use like
  * `class XXX extends SimObject(THREE.Mesh, PhysicsPart) {}`
+ * @todo Some of the add() remove() functions won't work without overwriting the THREE.js prototype
+ * for this stuff
  */
 export function SimObject(threeCls, ...partClss) {
   _assert(threeCls.prototype instanceof THREE.Object3D ||
